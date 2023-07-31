@@ -1,11 +1,12 @@
 [package]
 name = "obg"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "GPL-3.0-or-later"
 authors = ["†нøμ9нτςя¡мə <Th0ughtCr1me@protonmail.ch>"]
 description = "byte handling"
 documentation = "https://docs.rs/obg"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
