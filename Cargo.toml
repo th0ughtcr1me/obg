@@ -23,6 +23,7 @@ serde_json = { version = "1.0.103", features = ["alloc", "preserve_order", "inde
 serde_yaml = "0.9.23"
 sha3 = "0.10.8"
 shellexpand = { version = "3.1.0", features = ["full"] }
+steganography = "1.0.2"
 url = { version = "2.4.0", features = ["serde", "expose_internals"] }
 
 
