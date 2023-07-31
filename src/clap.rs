@@ -47,7 +47,7 @@ pub trait KeyDeriver {
 
 #[derive(Args, Debug)]
 pub struct KeygenArgs {
-    #[arg(short, long, required(true))]
+    #[arg(short, long, required(true), env = "OBG_KEY_FILE")]
     pub output_file: String,
     #[arg(short, long, required(true), env = "OBG_PBDKF2_PASSWORD")]
     pub password: String,
@@ -78,7 +78,7 @@ pub struct EncryptTextParams {
 
     // #[arg(env = "OBG_PBDKF2_CYCLES", default_value_t = 1337)]
     // pub cycles: u32,
-    #[arg(short, long)]
+    #[arg(short, long, env = "OBG_KEY_FILE")]
     pub key_file: String,
 }
 // impl KeyDeriver for EncryptTextParams {
@@ -107,7 +107,7 @@ pub struct EncryptFileParams {
 
     // #[arg(env = "OBG_PBDKF2_CYCLES", default_value_t = 1337)]
     // pub cycles: u32,
-    #[arg(short, long)]
+    #[arg(short, long, env = "OBG_KEY_FILE")]
     pub key_file: String,
 }
 // impl KeyDeriver for EncryptFileParams {
@@ -134,7 +134,7 @@ pub struct DecryptTextParams {
 
     // #[arg(env = "OBG_PBDKF2_CYCLES", default_value_t = 1337)]
     // pub cycles: u32,
-    #[arg(short, long)]
+    #[arg(short, long, env = "OBG_KEY_FILE")]
     pub key_file: String,
 }
 // impl KeyDeriver for DecryptTextParams {
@@ -155,7 +155,7 @@ pub struct DecryptFileParams {
     #[arg(short, long, required(true))]
     pub output_file: String,
 
-    #[arg(short, long)]
+    #[arg(short, long, env = "OBG_KEY_FILE")]
     pub key_file: String,
     // #[arg(short, long, env = "OBG_PBDKF2_PASSWORD")]
     // pub password: String,
