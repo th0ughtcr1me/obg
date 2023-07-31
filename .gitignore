@@ -1,0 +1,14 @@
+/target
+/*.txt
+
+# <git-ignore at=@2023-07-31-132021-UTC+0000
+.obg-key.yaml
+# </git-ignore>
+# <2023-07-31-132021-UTC />
+
+
+# <git-ignore at=@2023-07-31-132021-UTC+0000
+tests/ciphertext.jpg
+# </git-ignore>
+# <2023-07-31-132021-UTC />
+

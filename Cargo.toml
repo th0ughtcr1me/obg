@@ -1,0 +1,40 @@
+[package]
+name = "obg"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+authors = ["†нøμ9нτςя¡мə <Th0ughtCr1me@protonmail.ch>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aes = { version = "0.8.3", features = ["hazmat", "zeroize"] }
+cipher = { version = "0.4.4", features = ["alloc", "block-padding", "rand_core", "std", "zeroize", "blobby", "dev"] }
+clap = { version = "4.3.12", features = ["derive", "env", "string", "unicode", "wrap_help"] }
+clap_builder = { version = "4.3.19", features = ["env", "unicode", "string", "wrap_help"] }
+crc = "3.0.1"
+hex = { version = "0.4.3", features = ["serde"] }
+hmac = { version = "0.12.1", features = ["std"] }
+pbkdf2 = { version = "0.12.2", features = ["rayon", "sha1", "std", "sha2", "password-hash"] }
+rand = { version = "0.8.5", features = ["std"] }
+# rand_core = { version = "0.6.4", features = ["alloc", "getrandom", "std", "serde"] } # re-exported by aes->cipher->crypto-common->generic-array
+serde = { version = "1.0.171", features = ["derive", "rc", "alloc"] }
+serde_json = { version = "1.0.103", features = ["alloc", "preserve_order", "indexmap", "float_roundtrip", "arbitrary_precision"] }
+serde_yaml = "0.9.23"
+sha3 = "0.10.8"
+shellexpand = { version = "3.1.0", features = ["full"] }
+url = { version = "2.4.0", features = ["serde", "expose_internals"] }
+
+
+[[bin]]
+name = "obg"
+path = "src/main.rs"
+bench = false
+
+[lib]
+name = "obg"
+path = "src/lib.rs"
+
+[dev-dependencies]
+k9 = "0.11.6"
+speculate = "0.1.2"

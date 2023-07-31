@@ -1,0 +1,63 @@
+# source: https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf pages 28 and 29
+---
+test_cases:
+  aes256cbc:
+    encrypt:
+      key: 603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4
+      iv: 000102030405060708090a0b0c0d0e0f
+      plaintext: 6bc1bee22e409f96e93d7e117393172a
+      ciphertext: b2eb05e2c39be9fcda6c19078c6a9d1b
+      blocks:
+        1:
+          plaintext: 6bc1bee22e409f96e93d7e117393172a
+          input_block: 6bc0bce12a459991e134741a7f9e1925
+          output_block: f58c4c04d6e5f1ba779eabfb5f7bfbd6
+          ciphertext: f58c4c04d6e5f1ba779eabfb5f7bfbd6
+
+        2:
+          plaintext: ae2d8a571e03ac9c9eb76fac45af8e51
+          input_block: 5ba1c653c8e65d26e929c4571ad47587
+          output_block: 9cfc4e967edb808d679f777bc6702c7d
+          ciphertext: 9cfc4e967edb808d679f777bc6702c7d
+
+        3:
+          plaintext: 30c81c46a35ce411e5fbc1191a0a52ef
+          input_block: ac3452d0dd87649c8264b662dc7a7e92
+          output_block: 39f23369a9d9bacfa530e26304231461
+          ciphertext: 39f23369a9d9bacfa530e26304231461
+
+        4:
+          plaintext: f69f2445df4f9b17ad2b417be66c3710
+          input_block: cf6d172c769621d8081ba318e24f2371
+          output_block: b2eb05e2c39be9fcda6c19078c6a9d1b
+          ciphertext: b2eb05e2c39be9fcda6c19078c6a9d1b
+
+    decrypt:
+      key: 603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4
+      iv: 000102030405060708090a0b0c0d0e0f
+      ciphertext: f58c4c04d6e5f1ba779eabfb5f7bfbd6
+      plaintext: f69f2445df4f9b17ad2b417be66c3710
+      blocks:
+        1:
+          ciphertext: f58c4c04d6e5f1ba779eabfb5f7bfbd6
+          input-block: f58c4c04d6e5f1ba779eabfb5f7bfbd6
+          output-block: 6bc0bce12a459991e134741a7f9e1925
+          plaintext: 6bc1bee22e409f96e93d7e117393172a
+
+        2:
+          ciphertext: 9cfc4e967edb808d679f777bc6702c7d
+          input-block: 9cfc4e967edb808d679f777bc6702c7d
+          output-block: 5ba1c653c8e65d26e929c4571ad47587
+          plaintext: ae2d8a571e03ac9c9eb76fac45af8e51
+
+        3:
+          ciphertext: 39f23369a9d9bacfa530e26304231461
+          input-block: 39f23369a9d9bacfa530e26304231461
+          output-block: ac3452d0dd87649c8264b662dc7a7e92
+          plaintext: 30c81c46a35ce411e5fbc1191a0a52ef
+
+        4:
+          ciphertext: b2eb05e2c39be9fcda6c19078c6a9d1b
+          input-block: b2eb05e2c39be9fcda6c19078c6a9d1b
+          output-block: cf6d172c769621d8081ba318e24f2371
+          plaintext: f69f2445df4f9b17ad2b417be66c3710
