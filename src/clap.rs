@@ -42,7 +42,7 @@ pub trait KeyLoader {
 }
 
 pub trait KeyDeriver {
-    fn derive_key(&self) -> Result<Aes256Key, Error>;
+    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error>;
 }
 
 #[derive(Args, Debug)]
@@ -55,11 +55,13 @@ pub struct KeygenArgs {
     pub salt: String,
     #[arg(short, long, env = "OBG_PBDKF2_CYCLES", default_value_t = 1337)]
     pub cycles: u32,
+    #[arg(short = 'i', long = "shuffle-iv", help = "performs random shuffling in the generated IV")]
+    pub shuffle_iv: bool,
 }
 
 impl KeyDeriver for KeygenArgs {
-    fn derive_key(&self) -> Result<Aes256Key, Error> {
-        Aes256Key::derive(self.password.clone(), self.salt.clone(), self.cycles)
+    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+        Aes256Key::derive(self.password.clone(), self.salt.clone(), self.cycles, shuffle_iv)
     }
 }
 

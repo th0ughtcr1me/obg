@@ -86,7 +86,7 @@ impl Aes256Key {
             iv: hex::encode(iv),
         }
     }
-    pub fn derive(password: String, salt: String, cycles: u32) -> Result<Aes256Key, Error> {
+    pub fn derive(password: String, salt: String, cycles: u32, shuffle_iv: bool) -> Result<Aes256Key, Error> {
         let mut rng = rand::thread_rng();
 
         let password_file = Path::new(&password);
@@ -105,7 +105,9 @@ impl Aes256Key {
 
         let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
         let mut iv = pbkdf2_sha384_128bits(&salt, &password, cycles / 0xa);
-        iv.shuffle(&mut rng);
+        if shuffle_iv {
+            iv.shuffle(&mut rng);
+        }
         Ok(Aes256Key::new(key, iv))
     }
     pub fn load_from_file(filename: String) -> Result<Aes256Key, Error> {

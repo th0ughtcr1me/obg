@@ -17,7 +17,7 @@ fn main() -> Result<(), Error> {
     let _command = match mate.command {
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
-            let key = args.derive_key()?;
+            let key = args.derive_key(args.shuffle_iv)?;
             key.save_to_file(key_file.clone());
             eprintln!("saved {}", key_file);
         }
