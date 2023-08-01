@@ -25,8 +25,12 @@ pub use crate::ioutils::{absolute_path, open_write, read_bytes};
 use hex;
 use rand::prelude::*;
 use serde_yaml;
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::io::Write;
 use std::path::Path;
+
+
 
 use aes::cipher::{
     // generic_array::{GenericArray, typenum::U8};
@@ -37,11 +41,31 @@ use aes::cipher::{
 };
 use aes::Aes256;
 
+pub enum BlockTransformationAction {
+    Encryption,
+    Decryption,
+}
+
+pub struct BlockTransformationContext {
+    current: usize,
+    total: usize,
+    action: BlockTransformationAction,
+}
+impl BlockTransformationContext {
+    pub fn new(current: usize, total: usize, action: BlockTransformationAction) -> BlockTransformationContext {
+        BlockTransformationContext {
+            current, total, action
+        }
+    }
+}
+
 pub trait EncryptionEngine {
     fn encrypt_block(&self, plaintext: &[u8], xor_block: &[u8]) -> Vec<u8>;
     fn decrypt_block(&self, ciphertext: &[u8], xor_block: &[u8]) -> Vec<u8>;
     fn encrypt_blocks(&self, plaintext: &[u8]) -> Vec<u8>;
     fn decrypt_blocks(&self, ciphertext: &[u8]) -> Vec<u8>;
+    fn add_callback<F: Fn(BlockTransformationContext)+'static>(&self, callback: F);
+    fn trigger_callbacks(&self, index: usize, count: usize, action: BlockTransformationAction);
 }
 
 pub fn xor_128(left: B128, right: B128) -> B128 {
@@ -132,12 +156,14 @@ impl Aes256Key {
     }
 }
 
+
 #[derive(Debug, Clone)]
-pub struct Aes256CbcCodec {
+pub struct <F: Box<Fn(usize, usize, BlockTransformationAction)>>Aes256CbcCodec {
     cipher: Aes256,
     key: B256,
     iv: B128,
     padding: Padding,
+    progress_callbacks: Vec<Box<F>>,
 }
 
 impl Aes256CbcCodec {
@@ -152,6 +178,7 @@ impl Aes256CbcCodec {
             key: key,
             iv: iv,
             padding: padding,
+            progress_callbacks: Vec::new(),
         }
     }
     pub fn encrypt_first_block(&self, input_block: &[u8]) -> Vec<u8> {
@@ -189,6 +216,7 @@ impl EncryptionEngine for Aes256CbcCodec {
                 block.to_vec()
             };
             result.push(self.encrypt_block(block, xor_block));
+            self.trigger_callbacks(index, count, BlockTransformationAction::Encryption);
         }
         result.iter().flatten().map(|b| b.clone()).collect()
     }
@@ -212,6 +240,7 @@ impl EncryptionEngine for Aes256CbcCodec {
             } else {
                 block
             });
+            self.trigger_callbacks(index, count, BlockTransformationAction::Decryption);
         }
         result.iter().flatten().map(|b| b.clone()).collect()
     }
@@ -222,6 +251,16 @@ impl EncryptionEngine for Aes256CbcCodec {
         self.cipher.decrypt_block(&mut plaintext);
         xor(&plaintext.as_slice(), &xor_block).to_vec()
     }
+    fn add_callback<F: Box<Fn(usize, usize, BlockTransformationAction)>>(&mut self, callback: F) {
+        self.progress_callbacks.push(callback);
+    }
+    fn trigger_callbacks(&self, index: usize, count: usize, action: BlockTransformationAction) {
+        for callback in self.progress_callbacks.iter() {
+            let context = BlockTransformationContext::new(index, count, action);
+            (&mut *callback)(index, count, action);
+        }
+    }
+
 }
 
 #[cfg(test)]
