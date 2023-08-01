@@ -1,4 +1,7 @@
 // use crate::errors::Error;
+
+const DEFAULT_PAD_BYTE: u8 = 0x00;
+
 use crate::aescbc::tp::B128;
 pub trait Padder128 {
     fn pad(&self, msg: &[u8]) -> B128;
@@ -42,17 +45,17 @@ impl Ansix923 {
 impl Padder128 for Ansix923 {
     fn pad(&self, msg: &[u8]) -> B128 {
         let mut padded = [0xfe; 16];
-        padded.fill(0xff as u8);
+        padded.fill(self.padbyte());
         let pos = msg.len();
         let remainder = pos % 16;
-        let remaining = 16 - remainder;
+        let remaining = 0x10 - remainder;
         padded[..pos].clone_from_slice(&msg);
         if remaining == 0 {
             return padded;
         }
-        padded[pos..].fill(0xff as u8);
+        padded[pos..].fill(self.padbyte());
         // ANSI X923
-        padded[16 - 1] = remaining as u8;
+        padded[0x10 - 1] = remaining as u8;
         padded
     }
     fn unpad(&self, msg: &[u8]) -> Vec<u8> {
@@ -98,10 +101,10 @@ mod padder128_tests {
             0x1c, 0xeb, 0x00, 0xda, 0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xfa, 0xde, 0xff, 0xff,
             0xff, 0x04,
         ];
-        let mut padded = [0xfe; 16];
-        assert_equal!(padded, [0xfe; 16]);
+        let mut padded = [0xfe; 0x10];
+        assert_equal!(padded, [0xfe; 0x10]);
         padded.fill(0xff as u8);
-        assert_equal!(padded, [0xff; 16]);
+        assert_equal!(padded, [0xff; 0x10]);
         let pos = msg.len();
         assert_equal!(pos, 12);
         padded[..pos].clone_from_slice(&msg);
@@ -114,10 +117,10 @@ mod padder128_tests {
             ]
         );
         // ANSI X923
-        let remainder = pos % 16;
-        let remaining = 16 - remainder;
+        let remainder = pos % 0x10;
+        let remaining = 0x10 - remainder;
         assert_equal!(remainder, 12);
-        assert_equal!(remaining, 4);
+        assert_equal!(remaining, 0x4);
         padded[pos + remaining - 1] = remaining as u8;
         assert_equal!(padded, gsm);
     }
@@ -136,7 +139,7 @@ mod padder128_tests {
             ]
         );
         let abs_len = msg.len();
-        assert_equal!(abs_len, 16);
+        assert_equal!(abs_len, 0x10);
         let last_pos = abs_len - 1;
         assert_equal!(last_pos, 15);
         let mut preamble: Vec<u8> = Vec::with_capacity(abs_len);
@@ -145,7 +148,7 @@ mod padder128_tests {
         assert_equal!(preamble, msg);
 
         let pad_len = preamble[last_pos] as usize;
-        assert_equal!(pad_len, 4);
+        assert_equal!(pad_len, 0x4);
 
         let cut_pos = abs_len - pad_len;
         assert_equal!(cut_pos, 12);
@@ -162,7 +165,7 @@ mod padder128_tests {
         // Given a padder with 0xff as padbyte
         let padder = Ansix923::new(0xff as u8);
 
-        // And a block with remainder of modulus 16 = 4
+        // And a block with remainder of modulus 0x10 = 0x4
         let block12 = [
             0x1c, 0xeb, 0x00, 0xda, 0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xfa, 0xde,
         ];
