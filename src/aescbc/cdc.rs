@@ -30,8 +30,6 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::path::Path;
 
-
-
 use aes::cipher::{
     // generic_array::{GenericArray, typenum::U8};
     generic_array::{ArrayLength, GenericArray},
@@ -51,6 +49,8 @@ pub struct BlockTransformationContext {
     total: usize,
     action: BlockTransformationAction,
 }
+
+
 impl BlockTransformationContext {
     pub fn new(current: usize, total: usize, action: BlockTransformationAction) -> BlockTransformationContext {
         BlockTransformationContext {
@@ -158,7 +158,10 @@ impl Aes256Key {
 
 
 #[derive(Debug, Clone)]
-pub struct <F: Box<Fn(usize, usize, BlockTransformationAction)>>Aes256CbcCodec {
+pub struct Aes256CbcCodec<F>
+where
+    T: Fn(BlockTransformationContext),
+{
     cipher: Aes256,
     key: B256,
     iv: B128,
@@ -166,12 +169,12 @@ pub struct <F: Box<Fn(usize, usize, BlockTransformationAction)>>Aes256CbcCodec {
     progress_callbacks: Vec<Box<F>>,
 }
 
-impl Aes256CbcCodec {
-    pub fn new(key: B256, iv: B128) -> Aes256CbcCodec {
+impl <T: Fn(BlockTransformationContext)> Aes256CbcCodec<T> {
+    pub fn new(key: B256, iv: B128) -> Aes256CbcCodec<T> {
         let padding = Padding::Ansix923(Ansix923::new(0x00 as u8));
         Aes256CbcCodec::new_with_padding(key, iv, padding)
     }
-    pub fn new_with_padding(key: B256, iv: B128, padding: Padding) -> Aes256CbcCodec {
+    pub fn new_with_padding(key: B256, iv: B128, padding: Padding) -> Aes256CbcCodec<T> {
         let gkey = GenericArray::from(key);
         Aes256CbcCodec {
             cipher: Aes256::new(&gkey),
@@ -181,12 +184,22 @@ impl Aes256CbcCodec {
             progress_callbacks: Vec::new(),
         }
     }
+    fn add_callback(&mut self, callback: T) {
+        self.progress_callbacks.push(callback);
+    }
+    fn trigger_callbacks(&self, index: usize, count: usize, action: BlockTransformationAction) {
+        let ctx = BlockTransformationContext::new(index, count, action);
+        for callback in &self.progress_callbacks.iter() {
+            let context = BlockTransformationContext::new(index, count, action);
+            (&mut *callback.borrow())(ctx.clone());
+        }
+    }
     pub fn encrypt_first_block(&self, input_block: &[u8]) -> Vec<u8> {
         self.encrypt_block(input_block, &self.iv)
     }
 }
 
-impl EncryptionEngine for Aes256CbcCodec {
+impl<T> EncryptionEngine for Aes256CbcCodec<T> {
     fn encrypt_block(&self, plaintext: &[u8], xor_block: &[u8]) -> Vec<u8> {
         // XXX: validate blocks' size to 16 bytes and return Result<Vec<u8>, Error>
         let mut input_block = xor(&plaintext, &xor_block);
@@ -251,16 +264,6 @@ impl EncryptionEngine for Aes256CbcCodec {
         self.cipher.decrypt_block(&mut plaintext);
         xor(&plaintext.as_slice(), &xor_block).to_vec()
     }
-    fn add_callback<F: Box<Fn(usize, usize, BlockTransformationAction)>>(&mut self, callback: F) {
-        self.progress_callbacks.push(callback);
-    }
-    fn trigger_callbacks(&self, index: usize, count: usize, action: BlockTransformationAction) {
-        for callback in self.progress_callbacks.iter() {
-            let context = BlockTransformationContext::new(index, count, action);
-            (&mut *callback)(index, count, action);
-        }
-    }
-
 }
 
 #[cfg(test)]
@@ -726,7 +729,7 @@ mod aes256cbc_tests {
         let plaintext_length = plaintext.len();
 
         // Given I initialize a Aes256CbcCodec with a key and IV
-        let cdc = Aes256CbcCodec::new(key, iv);
+        let cdc = Aes256CbcCodec<T>::new(key, iv);
 
         // When I encrypt the combined plaintext
         let ciphertext = cdc.encrypt_blocks(&plaintext);
