@@ -8,9 +8,9 @@ PASSWORD			:="https://soundcloud.com/wave-mandala/home-of-the-future"
 PLAINTEXT			:=plaintext.txt
 CIPHERTEXT			:=ciphertext.txt
 UNCIPHERTEXT			:=unciphertext.txt
-export OBG_CONFIG		:=.obg-config.yaml
-export OBG_KEY			:=.obg-key.yaml
-export OBG_FILE			:=.obg-file.yaml
+export OBG_CONFIG		:=obg-config.yaml
+export OBG_KEY			:=obg-key.yaml
+export OBG_FILE			:=obg-file.yaml
 export OBG_LOG			:=obg.log
 export K9_UPDATE_SNAPSHOTS	:=1
 all: test debug release
@@ -52,10 +52,14 @@ $(OBG_KEY):
 	$(OBG_RUN) keygen -p tests/key.png -s tests/iv.png -o $@
 
 e2e:
-	rm -f $(OBG_KEY)
-	$(MAKE) $(OBG_KEY)
+	# rm -f $(OBG_KEY)
+	# $(MAKE) $(OBG_KEY)
 	$(OBG_RUN) decrypt text -k $(OBG_KEY) $$($(OBG_RUN) encrypt text -k $(OBG_KEY) "Hello World")
+	$(OBG_RUN) encrypt file -k $(OBG_KEY) -i tests/testcases.yaml -o tests/testcases.cipher
+	$(OBG_RUN) decrypt file -k $(OBG_KEY) -i tests/testcases.cipher -o tests/testcases.plain
+	diff tests/testcases.yaml tests/testcases.plain
 	$(OBG_RUN) encrypt file -k $(OBG_KEY) -i tests/plaintext.jpg -o tests/ciphertext.jpg
-
+	$(OBG_RUN) decrypt file -k $(OBG_KEY) -i tests/ciphertext.jpg -o tests/decrypted.jpg
+	diff  tests/plaintext.jpg tests/decrypted.jpg
 
 .PHONY: all clean cls release debug fix fmt check build test examples run-$(OBG_NAME)
