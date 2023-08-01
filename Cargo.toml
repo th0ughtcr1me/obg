@@ -18,6 +18,7 @@ clap_builder = { version = "4.3.19", features = ["env", "unicode", "string", "wr
 crc = "3.0.1"
 hex = { version = "0.4.3", features = ["serde"] }
 hmac = { version = "0.12.1", features = ["std"] }
+indicatif = "0.17.5"
 pbkdf2 = { version = "0.12.2", features = ["rayon", "sha1", "std", "sha2", "password-hash"] }
 rand = { version = "0.8.5", features = ["std"] }
 # rand_core = { version = "0.6.4", features = ["alloc", "getrandom", "std", "serde"] } # re-exported by aes->cipher->crypto-common->generic-array
