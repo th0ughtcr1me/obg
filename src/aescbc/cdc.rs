@@ -142,7 +142,7 @@ pub struct Aes256CbcCodec {
 
 impl Aes256CbcCodec {
     pub fn new(key: B256, iv: B128) -> Aes256CbcCodec {
-        let padding = Padding::Ansix923(Ansix923::new(0xff as u8));
+        let padding = Padding::Ansix923(Ansix923::new(0x00 as u8));
         Aes256CbcCodec::new_with_padding(key, iv, padding)
     }
     pub fn new_with_padding(key: B256, iv: B128, padding: Padding) -> Aes256CbcCodec {
