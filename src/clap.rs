@@ -76,7 +76,7 @@ pub struct KeygenArgs {
     pub cycles: u32,
     #[arg(
         short = 'r',
-        long = "rand-iv",
+        long = "randomize-iv",
         help = "performs random shuffling in the generated IV"
     )]
     pub shuffle_iv: bool,
