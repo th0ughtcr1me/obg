@@ -13,7 +13,6 @@ use obg::aescbc::cdc::Aes256CbcCodec;
 ```
 */
 
-#![allow(unused)]
 pub use crate::aescbc::kd::pbkdf2_sha384_128bits;
 pub use crate::aescbc::kd::pbkdf2_sha384_256bits;
 pub use crate::aescbc::pad::Ansix923;
@@ -29,8 +28,8 @@ use std::io::Write;
 use std::path::Path;
 
 use aes::cipher::{
-    // generic_array::{GenericArray, typenum::U8};
-    generic_array::{ArrayLength, GenericArray},
+    // generic_array::{GenericArray, ArrayLength, typenum::U8};
+    generic_array::GenericArray,
     BlockDecrypt,
     BlockEncrypt,
     KeyInit,
@@ -135,6 +134,7 @@ impl Aes256Key {
 #[derive(Debug, Clone)]
 pub struct Aes256CbcCodec {
     cipher: Aes256,
+    #[allow(unused)]
     key: B256,
     iv: B128,
     padding: Padding,
@@ -226,7 +226,7 @@ impl EncryptionEngine for Aes256CbcCodec {
 
 #[cfg(test)]
 mod aes256cbc_tests {
-    use crate::aescbc::cdc::{xor_128, xor_256, Aes256CbcCodec, EncryptionEngine, B128, B256};
+    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, EncryptionEngine, B128, B256};
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
     use crate::ioutils::read_bytes;
@@ -257,8 +257,8 @@ mod aes256cbc_tests {
     }
 
     pub fn nist_cbc_aes256_encryption_test_input() -> Aes256CBCTestCase {
-        /// https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf
-        /// p.28 - # F.2.5 CBC-AES256.Encrypt Vectors
+        // https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf
+        // p.28 - # F.2.5 CBC-AES256.Encrypt Vectors
         let encryption_blocks = [
             Block {
                 plaintext: [
@@ -347,8 +347,8 @@ mod aes256cbc_tests {
         };
     }
     pub fn nist_cbc_aes256_decryption_test_input() -> Aes256CBCTestCase {
-        /// https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf
-        /// p.29 - # F.2.6 CBC-AES256.Decrypt Vectors
+        // https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf
+        // p.29 - # F.2.6 CBC-AES256.Decrypt Vectors
         let decryption_blocks = [
             Block {
                 ciphertext: [
@@ -457,7 +457,6 @@ mod aes256cbc_tests {
         // Then it should match the input
         assert_equal!(xor_input, block1.input);
 
-        let mut block1_plaintext = GenericArray::from(block1.plaintext);
         let mut block1_input = GenericArray::from(block1.input);
 
         // And I clone the original block input
@@ -504,7 +503,6 @@ mod aes256cbc_tests {
         // And I take the block #1 of NIST's input, plaintext and IV
         let block1 = decryption_input.block_at(0);
         let block1_output = block1.output.clone();
-        let block1_ciphertext = block1.ciphertext.clone();
 
         // And I XOR the block's output with the IV
         let xor_output = xor_128(block1_output, iv);
@@ -512,7 +510,6 @@ mod aes256cbc_tests {
         // Then it should match the plaintext
         assert_equal!(xor_output, block1.plaintext);
 
-        let mut block1_plaintext = GenericArray::from(block1.plaintext);
         let mut block1_input = GenericArray::from(block1.input);
 
         // And I clone the original block input
