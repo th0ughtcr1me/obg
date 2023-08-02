@@ -1,5 +1,7 @@
 # obg - encrypt/decrypt files
 
+encrypt or decrypt something with nothing or vice-versa
+
 [![CI](https://github.com/th0ughtcr1me/obg/actions/workflows/main.yml/badge.svg)](https://github.com/th0ughtcr1me/obg/actions/workflows/main.yml)
 
 ---
@@ -10,7 +12,7 @@
 cargo install obg
 ```
 
-## AES256-CBC Encryption and Decryption of files using other files as keys
+## AES256-CBC Encryption or Decryption of files using other files as keys
 
 For instance, any video, image, audio or any files binary or plaintext can be used to encrypt another file.
 
@@ -52,4 +54,6 @@ From there the encryption/decryption works the same as above.
 ## Pro Tips
 
 
-Both ``--password``  and ``-salt`` arguments of ``obg keygen`` can be paths to files, in fact they can point to the same file although that's a bit not advised.
+Both ``--password`` or ``-salt`` arguments of ``obg keygen`` can be
+paths to files, but if the given path don't exist in the file-system
+the password or salt will be that path.
