@@ -13,7 +13,6 @@ homepage = "https://github.com/whynothingmatters/obg"
 
 [dependencies]
 aes = { version = "0.8.3", features = ["hazmat", "zeroize"] }
-atty = "0.2.14"
 cipher = { version = "0.4.4", features = ["alloc", "block-padding", "rand_core", "std", "zeroize", "blobby", "dev"] }
 clap = { version = "4.3.12", features = ["derive", "env", "string", "unicode", "wrap_help"] }
 clap_builder = { version = "4.3.19", features = ["env", "unicode", "string", "wrap_help"] }

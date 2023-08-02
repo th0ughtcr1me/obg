@@ -595,7 +595,6 @@ name = "obg"
 version = "0.1.1"
 dependencies = [
  "aes",
- "atty",
  "cipher",
  "clap",
  "clap_builder",
