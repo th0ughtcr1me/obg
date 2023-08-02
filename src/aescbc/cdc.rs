@@ -65,6 +65,7 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
+    version: String,
     key: String,
     iv: String,
 }
@@ -83,6 +84,7 @@ impl Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
+            version: format!("obg-version-{}", env!("CARGO_PKG_VERSION")),
         }
     }
     pub fn derive(password: String, salt: String, cycles: u32, shuffle_iv: bool) -> Result<Aes256Key, Error> {
