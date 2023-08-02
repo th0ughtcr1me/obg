@@ -7,7 +7,7 @@ use shellexpand;
 use std::fs::File;
 use std::io::{self, Read};
 use std::io::{BufReader};
-use std::path::Path;
+// use std::path::Path;
 
 pub fn absolute_path(src: &str) -> String {
     String::from(shellexpand::tilde(src))
@@ -98,14 +98,14 @@ impl KeyDeriver for KeygenArgs {
 #[derive(Args, Debug)]
 #[group(multiple = false)]
 pub struct KeyOptions {
-    #[arg(short, long, default_value = "")]
-    pub password: String,
-    #[arg(short, long, default_value = "")]
-    pub salt: String,
-    #[arg(short, long, default_value_t = 1337)]
-    pub cycles: u32,
-    #[arg(short, long, )] //, overrides_with_all(["password", "salt"]))]
+    #[arg(short, long, required=false)] //, overrides_with_all(["password", "salt"]))]
     pub key_file: String,
+    // #[arg(short, long, required=false)]
+    // pub password: String,
+    // #[arg(short, long, required=false)]
+    // pub salt: String,
+    // #[arg(short, long, default_value_t = 1337)]
+    // pub cycles: u32,
 
     #[arg(
         short = 'r',
@@ -116,35 +116,35 @@ pub struct KeyOptions {
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
 }
-impl KeyDeriver for KeyOptions {
-    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        if self.key_file.len() > 0 {
-            if !Path::new(&self.key_file).exists() {
-                return Err(Error::InvalidCliArg(format!(
-                    "key-file {} does not exist",
-                    self.key_file
-                )));
-            }
-            return Aes256Key::load_from_file(self.key_file.clone());
-        }
-        if self.password.len() == 0 {
-            return Err(Error::InvalidCliArg(format!(
-                "--password is required when --key-file is not provided"
-            )));
-        }
-        if self.salt.len() == 0 {
-            return Err(Error::InvalidCliArg(format!(
-                "--salt is required when --key-file is not provided"
-            )));
-        }
-        Aes256Key::derive(
-            self.password.clone(),
-            self.salt.clone(),
-            self.cycles,
-            shuffle_iv,
-        )
-    }
-}
+// impl KeyDeriver for KeyOptions {
+//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+//         if self.key_file.len() > 0 {
+//             if !Path::new(&self.key_file).exists() {
+//                 return Err(Error::InvalidCliArg(format!(
+//                     "key-file {} does not exist",
+//                     self.key_file
+//                 )));
+//             }
+//             return Aes256Key::load_from_file(self.key_file.clone());
+//         }
+//         if self.password.len() == 0 {
+//             return Err(Error::InvalidCliArg(format!(
+//                 "--password is required when --key-file is not provided"
+//             )));
+//         }
+//         if self.salt.len() == 0 {
+//             return Err(Error::InvalidCliArg(format!(
+//                 "--salt is required when --key-file is not provided"
+//             )));
+//         }
+//         Aes256Key::derive(
+//             self.password.clone(),
+//             self.salt.clone(),
+//             self.cycles,
+//             shuffle_iv,
+//         )
+//     }
+// }
 impl KeyLoader for KeyOptions {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         match self.key_file.len() {
@@ -222,11 +222,11 @@ impl EncryptTextParams {
         }
     }
 }
-impl KeyDeriver for EncryptTextParams {
-    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        self.key_opts.derive_key(shuffle_iv)
-    }
-}
+// impl KeyDeriver for EncryptTextParams {
+//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+//         self.key_opts.derive_key(shuffle_iv)
+//     }
+// }
 impl KeyLoader for EncryptTextParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -241,11 +241,11 @@ pub struct EncryptFileParams {
     #[command(flatten)]
     pub key_opts: KeyOptions,
 }
-impl KeyDeriver for EncryptFileParams {
-    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        self.key_opts.derive_key(shuffle_iv)
-    }
-}
+// impl KeyDeriver for EncryptFileParams {
+//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+//         self.key_opts.derive_key(shuffle_iv)
+//     }
+// }
 impl KeyLoader for EncryptFileParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -277,11 +277,11 @@ impl DecryptTextParams {
         }
     }
 }
-impl KeyDeriver for DecryptTextParams {
-    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        self.key_opts.derive_key(shuffle_iv)
-    }
-}
+// impl KeyDeriver for DecryptTextParams {
+//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+//         self.key_opts.derive_key(shuffle_iv)
+//     }
+// }
 impl KeyLoader for DecryptTextParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -296,11 +296,11 @@ pub struct DecryptFileParams {
     #[command(flatten)]
     pub key_opts: KeyOptions,
 }
-impl KeyDeriver for DecryptFileParams {
-    fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        self.key_opts.derive_key(shuffle_iv)
-    }
-}
+// impl KeyDeriver for DecryptFileParams {
+//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+//         self.key_opts.derive_key(shuffle_iv)
+//     }
+// }
 impl KeyLoader for DecryptFileParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
