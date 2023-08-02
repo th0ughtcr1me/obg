@@ -95,7 +95,7 @@ impl KeyDeriver for KeygenArgs {
 }
 
 #[derive(Args, Debug)]
-#[group(required = true, multiple = false)]
+#[group(multiple = false)]
 pub struct KeyOptions {
     #[arg(short, long, env = "OBG_KEY_FILE")]
     pub key_file: Option<String>,

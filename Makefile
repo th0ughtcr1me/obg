@@ -60,12 +60,12 @@ e2e: cleanx
 	cargo build
 	rm -f $(OBG_KEY)
 	$(MAKE) $(OBG_KEY)
-	$(OBG_RUN) encrypt text -p "some password" -s "some salt" "Hello World" > cipher.txt
-	test "$$($(OBG_RUN) decrypt text -p "some password" -s "some salt" "$$(cat cipher.txt)")" = "Hello World"
-	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -p "some password" -s "some salt")" = "Hello World"
 	$(OBG_RUN) encrypt text -k $(OBG_KEY) "Hello World" > cipher.txt
 	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY) "$$(cat cipher.txt)")" = "Hello World"
 	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY))" = "Hello World"
+	$(OBG_RUN) encrypt text -p "some password" -s "some salt" "Hello World" > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -p "some password" -s "some salt" "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -p "some password" -s "some salt")" = "Hello World"
 	$(OBG_RUN) encrypt file -k $(OBG_KEY) -i tests/testcases.yaml -o tests/testcases.cipher
 	$(OBG_RUN) decrypt file -k $(OBG_KEY) -i tests/testcases.cipher -o tests/testcases.plain
 	diff tests/testcases.yaml tests/testcases.plain
