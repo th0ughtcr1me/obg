@@ -1,15 +1,14 @@
-#![allow(unused)]
 use clap_builder::Parser;
 use hex;
 use obg::aescbc::EncryptionEngine;
-use obg::aescbc::{Aes256CbcCodec, Aes256Key};
+use obg::aescbc::Aes256CbcCodec;
 use obg::clap::{Cli, Command, Decrypt, Encrypt};
 use obg::clap::{KeyDeriver, KeyLoader};
 use obg::errors::Error;
 use obg::ioutils::absolute_path;
 use obg::ioutils::open_write;
 use obg::ioutils::read_bytes;
-use std::io::Write;
+use std::io::{Write};
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
@@ -18,14 +17,15 @@ fn main() -> Result<(), Error> {
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;
-            key.save_to_file(key_file.clone());
+            key.save_to_file(key_file.clone())?;
             eprintln!("saved {}", key_file);
         }
         Command::Encrypt(instruction) => match instruction {
             Encrypt::Text(args) => {
                 let key = args.load_key()?;
                 let codec = Aes256CbcCodec::new(key.skey(), key.siv());
-                let ciphertext = codec.encrypt_blocks(&args.plaintext.as_bytes());
+                let plaintext = args.load_plaintext()?;
+                let ciphertext = codec.encrypt_blocks(&plaintext);
                 println!("{}", hex::encode(ciphertext));
             }
             Encrypt::File(args) => {
@@ -42,7 +42,8 @@ fn main() -> Result<(), Error> {
             Decrypt::Text(args) => {
                 let key = args.load_key()?;
                 let codec = Aes256CbcCodec::new(key.skey(), key.siv());
-                let plaintext = codec.decrypt_blocks(&hex::decode(args.ciphertext)?);
+                let ciphertext = args.load_ciphertext()?;
+                let plaintext = codec.decrypt_blocks(&hex::decode(&ciphertext)?);
                 println!("{}", String::from_utf8(plaintext)?);
             }
             Decrypt::File(args) => {

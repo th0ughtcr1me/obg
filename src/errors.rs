@@ -1,4 +1,3 @@
-#![allow(unused)]
 use hex::FromHexError;
 use std::string::FromUtf8Error;
 
@@ -14,16 +13,18 @@ pub enum Error {
     SerializationError(String),
     InvalidAes256KeySize(String),
     InvalidUtf8(FromUtf8Error),
+    InvalidCliArg(String),
     InvalidAesIvSize(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::IOError(e) => write!(f, "IOError: {:#?}", e),
-            Error::EncryptionError(e) => write!(f, "EncryptionError: {:#?}", e),
-            Error::DecryptionError(e) => write!(f, "DecryptionError: {:#?}", e),
-            Error::FileSystemError(e) => write!(f, "FileSystemError: {:#?}", e),
+            Error::IOError(e) => write!(f, "IOError: {}", e),
+            Error::EncryptionError(e) => write!(f, "EncryptionError: {}", e),
+            Error::DecryptionError(e) => write!(f, "DecryptionError: {}", e),
+            Error::FileSystemError(e) => write!(f, "FileSystemError: {}", e),
+            Error::InvalidCliArg(e) => write!(f, "InvalidCliArg: {}", e),
             Error::HexDecodingError(e) => write!(f, "cannot parse hex string: {}", e),
             Error::UriParseError(e) => write!(f, "failed to parse URI {}", e),
             Error::DeserializationError(e) => write!(f, "deserialization error: {}", e),

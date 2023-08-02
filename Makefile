@@ -2,8 +2,9 @@ INSTALL_PATH			:=$(HOME)/usr/libexec/
 OBG_NAME			:=obg
 OBG_DEBUG_EXEC			:=target/debug/$(OBG_NAME)
 OBG_RELEASE_EXEC		:=target/release/$(OBG_NAME)
-OBG_EXEC			:=$(OBG_RELEASE_EXEC)
-OBG_RUN				:=cargo run --bin $(OBG_NAME) --
+OBG_EXEC			:=$(OBG_DEBUG_EXEC)
+OBG_RUN				:=$(OBG_DEBUG_EXEC)
+OBG_RUN				?=cargo run --bin $(OBG_NAME) --
 PASSWORD			:="https://soundcloud.com/wave-mandala/home-of-the-future"
 PLAINTEXT			:=plaintext.txt
 CIPHERTEXT			:=ciphertext.txt
@@ -33,6 +34,10 @@ debug: check fix | $(OBG_DEBUG_EXEC)
 clean: cls
 	@rm -rf target
 
+cleanx:
+	@rm -rf $(OBG_DEBUG_EXEC)
+	@rm -rf $(OBG_RELEASE_EXEC)
+
 cls:
 	-@reset || tput reset
 
@@ -51,10 +56,16 @@ run build test: check
 $(OBG_KEY):
 	$(OBG_RUN) keygen -p tests/key.png -s tests/iv.png -o $@
 
-e2e:
-	# rm -f $(OBG_KEY)
-	# $(MAKE) $(OBG_KEY)
-	$(OBG_RUN) decrypt text -k $(OBG_KEY) $$($(OBG_RUN) encrypt text -k $(OBG_KEY) "Hello World")
+e2e: cleanx
+	cargo build
+	rm -f $(OBG_KEY)
+	$(MAKE) $(OBG_KEY)
+	$(OBG_RUN) encrypt text -p "some password" -s "some salt" "Hello World" > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -p "some password" -s "some salt" "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -p "some password" -s "some salt")" = "Hello World"
+	$(OBG_RUN) encrypt text -k $(OBG_KEY) "Hello World" > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY) "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY))" = "Hello World"
 	$(OBG_RUN) encrypt file -k $(OBG_KEY) -i tests/testcases.yaml -o tests/testcases.cipher
 	$(OBG_RUN) decrypt file -k $(OBG_KEY) -i tests/testcases.cipher -o tests/testcases.plain
 	diff tests/testcases.yaml tests/testcases.plain
