@@ -1,7 +1,6 @@
-use crate::serial::YamlFile;
 use crate::aescbc::tp::{B128, B256};
 use crate::errors::Error;
-use std::string::ToString;
+use crate::serial::YamlFile;
 // use crate::aescbc::tp::{b128_to_u64, b256_to_u128};
 
 use serde::{Deserialize, Serialize};
@@ -18,12 +17,11 @@ impl YamlFile for AesCbcPaddingMethod {
     }
 }
 
-
 impl fmt::Display for AesCbcPaddingMethod {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}",
+            "padding_{}",
             match self {
                 AesCbcPaddingMethod::Ansix923 => "ansix923",
             }
@@ -44,7 +42,10 @@ impl AesCbcPaddingConfig {
 
 impl YamlFile for AesCbcPaddingConfig {
     fn default() -> Result<AesCbcPaddingConfig, Error> {
-        Ok(AesCbcPaddingConfig::new(0xff, AesCbcPaddingMethod::default()?))
+        Ok(AesCbcPaddingConfig::new(
+            0xff,
+            AesCbcPaddingMethod::default()?,
+        ))
     }
 }
 
@@ -73,23 +74,27 @@ pub enum Pbkdf2HashingAlgo {
     Sha3_512,
 }
 
-impl ToString for Pbkdf2HashingAlgo {
-    fn to_string(&self) -> String {
-        format!("pbkdf2_{}", match self {
-            Pbkdf2HashingAlgo::Sha3_256 => "sha3_256".to_string(),
-            Pbkdf2HashingAlgo::Sha3_384 => "sha3_384".to_string(),
-            Pbkdf2HashingAlgo::Sha3_512 => "sha3_512".to_string(),
-        })
+impl fmt::Display for Pbkdf2HashingAlgo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "pbkdf2_{}",
+            match self {
+                Pbkdf2HashingAlgo::Sha3_256 => "sha3_256",
+                Pbkdf2HashingAlgo::Sha3_384 => "sha3_384",
+                Pbkdf2HashingAlgo::Sha3_512 => "sha3_512",
+            }
+        )
     }
 }
-
-
 
 impl YamlFile for Pbkdf2HashingAlgo {
     fn default() -> Result<Pbkdf2HashingAlgo, Error> {
         Ok(Pbkdf2HashingAlgo::Sha3_384)
     }
 }
+
+
 
 impl Pbkdf2BlockLength {
     pub fn get(&self) -> usize {
@@ -121,7 +126,7 @@ impl YamlFile for Pbkdf2Config {
             salt: String::new(),
             salt_hashing: Pbkdf2HashingAlgo::default()?,
             iterations: 1337,
-            length: Pbkdf2BlockLength::L128
+            length: Pbkdf2BlockLength::L128,
         })
     }
 }

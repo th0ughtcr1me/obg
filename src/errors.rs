@@ -12,6 +12,7 @@ pub enum Error {
     UriParseError(String),
     SerializationError(String),
     InvalidAes256KeySize(String),
+    InvalidConfig(String),
     InvalidUtf8(FromUtf8Error),
     InvalidCliArg(String),
     InvalidAesIvSize(String),
@@ -33,6 +34,7 @@ impl std::fmt::Display for Error {
             Error::InvalidAes256KeySize(s) => write!(f, "InvalidAes256KeySize: {}", s),
             Error::InvalidAesIvSize(s) => write!(f, "InvalidAesIvSize: {}", s),
             Error::InvalidUtf8(s) => write!(f, "InvalidUtf8: {}", s),
+            Error::InvalidConfig(s) => write!(f, "InvalidConfig: {}", s),
             Error::YamlFileError(e) => write!(f, "{}", e),
         }
     }

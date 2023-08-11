@@ -2,6 +2,7 @@ use crc::{Crc, CRC_64_GO_ISO, CRC_64_WE};
 use crc::{CRC_32_JAMCRC, CRC_32_XFER, CRC_64_MS};
 use hex;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 pub const GO_64: Crc<u64> = Crc::<u64>::new(&CRC_64_GO_ISO);
 pub const WE_64: Crc<u64> = Crc::<u64>::new(&CRC_64_WE);
@@ -57,12 +58,16 @@ pub enum CrcAlgo {
     GcRc256,
 }
 
-impl std::string::ToString for CrcAlgo {
-    fn to_string(&self) -> String {
-        format!("crc_{}", match self {
-            CrcAlgo::GcRc128 => "gcrc128".to_string(),
-            CrcAlgo::GcRc256 => "gcrc256".to_string(),
-        })
+impl fmt::Display for CrcAlgo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "crc_{}",
+            match self {
+                CrcAlgo::GcRc128 => "gcrc128",
+                CrcAlgo::GcRc256 => "gcrc256",
+            }
+        )
     }
 }
 

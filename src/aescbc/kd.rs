@@ -1,9 +1,16 @@
+use crate::errors::Error;
 use crate::aescbc::tp::B128;
 use crate::aescbc::tp::B256;
+use crate::aescbc::config::Pbkdf2HashingAlgo;
+use crate::serial::YamlFile;
+use crate::hashis::{CrcAlgo};
+use std::fmt;
 use pbkdf2::pbkdf2_hmac;
 use sha3::Sha3_256 as Sha256;
 use sha3::Sha3_384 as Sha384;
 use sha3::Sha3_512 as Sha512;
+use serde::{Deserialize, Serialize};
+
 
 pub fn pbkdf2_sha256(pw: &[u8], st: &[u8], it: u32, length: usize) -> Vec<u8> {
     let mut key: Vec<u8> = Vec::with_capacity(length);
@@ -95,6 +102,30 @@ pub fn pbkdf2_sha512_256bits(pw: &[u8], st: &[u8], it: u32) -> B256 {
     }
     result
 }
+#[derive(PartialEq, Clone, Serialize, Deserialize)]
+pub enum DerivationScheme {
+    Pbkdf2(Pbkdf2HashingAlgo),
+    Crc(CrcAlgo),
+}
+impl YamlFile for DerivationScheme {
+    fn default() -> Result<DerivationScheme, Error> {
+        Ok(DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_512))
+    }
+}
+
+impl fmt::Display for DerivationScheme {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "ds_{}",
+            match self {
+                DerivationScheme::Crc(a) => format!("{}", a),
+                DerivationScheme::Pbkdf2(a) => format!("{}", a),
+            }
+        )
+    }
+}
+
 
 #[cfg(test)]
 mod pbkdf2_sha256_tests {

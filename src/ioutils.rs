@@ -2,6 +2,7 @@ pub use crate::errors::Error;
 use shellexpand;
 pub use std::fs::{File, OpenOptions};
 pub use std::io::{BufReader, Read, Write};
+pub use std::env::current_dir;
 
 pub struct ReadFile {
     pub bytes: Vec<u8>,
@@ -9,7 +10,14 @@ pub struct ReadFile {
 }
 
 pub fn absolute_path(src: &str) -> String {
-    String::from(shellexpand::tilde(src))
+    String::from(match shellexpand::full(src) {
+        Ok(v) => v,
+        Err(_) => shellexpand::tilde(src)
+    })
+}
+
+pub fn resolved_path(src: &str) -> String {
+    absolute_path(src).replace(&homedir(), "~")
 }
 
 pub fn homedir() -> String {

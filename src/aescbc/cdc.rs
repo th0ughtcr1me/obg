@@ -87,6 +87,7 @@ impl Aes256Key {
             version: format!("obg-version-{}", env!("CARGO_PKG_VERSION")),
         }
     }
+
     pub fn derive(password: String, salt: String, cycles: u32, shuffle_iv: bool) -> Result<Aes256Key, Error> {
         let mut rng = rand::thread_rng();
 
