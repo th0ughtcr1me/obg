@@ -1,6 +1,7 @@
 use crc::{Crc, CRC_64_GO_ISO, CRC_64_WE};
 use crc::{CRC_32_JAMCRC, CRC_32_XFER, CRC_64_MS};
 use hex;
+use serde::{Deserialize, Serialize};
 
 pub const GO_64: Crc<u64> = Crc::<u64>::new(&CRC_64_GO_ISO);
 pub const WE_64: Crc<u64> = Crc::<u64>::new(&CRC_64_WE);
@@ -10,9 +11,9 @@ pub const XF_32: Crc<u32> = Crc::<u32>::new(&CRC_32_XFER);
 
 pub fn gcrc128(data: &[u8]) -> [u8; 16] {
     let mut result = [0xff; 16];
-    let mut lhs = hex::decode(format!("{:x}", WE_64.checksum(&data.clone()))).unwrap();
+    let mut lhs = hex::decode(format!("{:x}", WE_64.checksum(&data))).unwrap();
     lhs.reverse();
-    let rhs = hex::decode(format!("{:x}", GO_64.checksum(&data.clone()))).unwrap();
+    let rhs = hex::decode(format!("{:x}", GO_64.checksum(&data))).unwrap();
     result[..16 / 2].copy_from_slice(&lhs);
     result[16 / 2..].copy_from_slice(&rhs);
     result
@@ -35,12 +36,12 @@ mod gcrc128_tests {
 
 pub fn gcrc256(data: &[u8]) -> [u8; 32] {
     let mut result = [0xff; 32];
-    let mut lhs = gcrc128(&data.clone());
+    let mut lhs = gcrc128(&data);
     lhs.reverse();
-    let rhs00 = hex::decode(format!("{:x}", MS_64.checksum(&data.clone()))).unwrap();
-    let rhs01 = hex::decode(format!("{:x}", JC_32.checksum(&data.clone()))).unwrap();
-    let rhs10 = hex::decode(format!("{:x}", XF_32.checksum(&data.clone()))).unwrap();
-    let mut rhs = gcrc128(&data.clone());
+    let rhs00 = hex::decode(format!("{:x}", MS_64.checksum(&data))).unwrap();
+    let rhs01 = hex::decode(format!("{:x}", JC_32.checksum(&data))).unwrap();
+    let rhs10 = hex::decode(format!("{:x}", XF_32.checksum(&data))).unwrap();
+    let mut rhs = gcrc128(&data);
     let pos = 32 / 2 / 2;
     rhs[..pos].copy_from_slice(&rhs00);
     rhs[pos..pos + 4].copy_from_slice(&rhs01);
@@ -48,6 +49,21 @@ pub fn gcrc256(data: &[u8]) -> [u8; 32] {
     result[..32 / 2].copy_from_slice(&lhs);
     result[32 / 2..].copy_from_slice(&rhs);
     result
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum CrcAlgo {
+    GcRc128,
+    GcRc256,
+}
+
+impl std::string::ToString for CrcAlgo {
+    fn to_string(&self) -> String {
+        format!("crc_{}", match self {
+            CrcAlgo::GcRc128 => "gcrc128".to_string(),
+            CrcAlgo::GcRc256 => "gcrc256".to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

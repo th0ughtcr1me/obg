@@ -15,6 +15,7 @@ pub enum Error {
     InvalidUtf8(FromUtf8Error),
     InvalidCliArg(String),
     InvalidAesIvSize(String),
+    YamlFileError(YamlFileError),
 }
 
 impl std::fmt::Display for Error {
@@ -32,6 +33,7 @@ impl std::fmt::Display for Error {
             Error::InvalidAes256KeySize(s) => write!(f, "InvalidAes256KeySize: {}", s),
             Error::InvalidAesIvSize(s) => write!(f, "InvalidAesIvSize: {}", s),
             Error::InvalidUtf8(s) => write!(f, "InvalidUtf8: {}", s),
+            Error::YamlFileError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -74,6 +76,11 @@ impl From<FromHexError> for Error {
     }
 }
 
+impl From<YamlFileError> for Error {
+    fn from(e: YamlFileError) -> Self {
+        Error::YamlFileError(e)
+    }
+}
 impl From<EncryptionError> for Error {
     fn from(e: EncryptionError) -> Self {
         Error::EncryptionError(e)
@@ -83,6 +90,22 @@ impl From<EncryptionError> for Error {
 impl From<DecryptionError> for Error {
     fn from(e: DecryptionError) -> Self {
         Error::DecryptionError(e)
+    }
+}
+
+#[derive(Debug)]
+pub struct YamlFileError {
+    message: String,
+}
+impl std::fmt::Display for YamlFileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl YamlFileError {
+    pub fn with_message(message: String) -> YamlFileError {
+        YamlFileError { message }
     }
 }
 

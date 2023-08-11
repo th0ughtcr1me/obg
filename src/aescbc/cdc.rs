@@ -136,7 +136,6 @@ impl Aes256Key {
 #[derive(Debug, Clone)]
 pub struct Aes256CbcCodec {
     cipher: Aes256,
-    #[allow(unused)]
     key: B256,
     iv: B128,
     padding: Padding,
@@ -159,6 +158,10 @@ impl Aes256CbcCodec {
     pub fn encrypt_first_block(&self, input_block: &[u8]) -> Vec<u8> {
         self.encrypt_block(input_block, &self.iv)
     }
+    pub fn cipher(&self) -> Aes256 {
+        Aes256::new(&(self.key).into())
+    }
+
 }
 
 impl EncryptionEngine for Aes256CbcCodec {

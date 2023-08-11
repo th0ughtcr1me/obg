@@ -1,24 +1,24 @@
+use crate::serial::YamlFile;
 use crate::aescbc::tp::{B128, B256};
 use crate::errors::Error;
+use std::string::ToString;
 // use crate::aescbc::tp::{b128_to_u64, b256_to_u128};
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-
-pub trait Config {
-    fn default() -> Self;
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AesCbcPaddingMethod {
     Ansix923,
 }
 
-impl Config for AesCbcPaddingMethod {
-    fn default() -> AesCbcPaddingMethod {
-        AesCbcPaddingMethod::Ansix923
+impl YamlFile for AesCbcPaddingMethod {
+    fn default() -> Result<AesCbcPaddingMethod, Error> {
+        Ok(AesCbcPaddingMethod::Ansix923)
     }
 }
+
+
 impl fmt::Display for AesCbcPaddingMethod {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -42,9 +42,9 @@ impl AesCbcPaddingConfig {
     }
 }
 
-impl Config for AesCbcPaddingConfig {
-    fn default() -> AesCbcPaddingConfig {
-        AesCbcPaddingConfig::new(0xff, AesCbcPaddingMethod::default())
+impl YamlFile for AesCbcPaddingConfig {
+    fn default() -> Result<AesCbcPaddingConfig, Error> {
+        Ok(AesCbcPaddingConfig::new(0xff, AesCbcPaddingMethod::default()?))
     }
 }
 
@@ -52,6 +52,43 @@ impl Config for AesCbcPaddingConfig {
 pub enum Pbkdf2BlockLength {
     L128,
     L256,
+}
+impl fmt::Display for Pbkdf2BlockLength {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Pbkdf2BlockLength::L128 => "128bits",
+                Pbkdf2BlockLength::L256 => "256bits",
+            }
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Pbkdf2HashingAlgo {
+    Sha3_256,
+    Sha3_384,
+    Sha3_512,
+}
+
+impl ToString for Pbkdf2HashingAlgo {
+    fn to_string(&self) -> String {
+        format!("pbkdf2_{}", match self {
+            Pbkdf2HashingAlgo::Sha3_256 => "sha3_256".to_string(),
+            Pbkdf2HashingAlgo::Sha3_384 => "sha3_384".to_string(),
+            Pbkdf2HashingAlgo::Sha3_512 => "sha3_512".to_string(),
+        })
+    }
+}
+
+
+
+impl YamlFile for Pbkdf2HashingAlgo {
+    fn default() -> Result<Pbkdf2HashingAlgo, Error> {
+        Ok(Pbkdf2HashingAlgo::Sha3_384)
+    }
 }
 
 impl Pbkdf2BlockLength {
@@ -63,13 +100,32 @@ impl Pbkdf2BlockLength {
     }
 }
 
+pub trait Pbkdf2Hasher<Block> {
+    fn pbkdf2_hash(pw: &[u8], st: &[u8], it: u32) -> Block;
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Pbkdf2Config {
-    password: String,
-    salt: String,
-    iterations: u32,
-    length: Pbkdf2BlockLength,
+    pub password: String,
+    pub password_hashing: Pbkdf2HashingAlgo,
+    pub salt: String,
+    pub salt_hashing: Pbkdf2HashingAlgo,
+    pub iterations: u32,
+    pub length: Pbkdf2BlockLength,
 }
+impl YamlFile for Pbkdf2Config {
+    fn default() -> Result<Pbkdf2Config, Error> {
+        Ok(Pbkdf2Config {
+            password: String::new(),
+            password_hashing: Pbkdf2HashingAlgo::default()?,
+            salt: String::new(),
+            salt_hashing: Pbkdf2HashingAlgo::default()?,
+            iterations: 1337,
+            length: Pbkdf2BlockLength::L128
+        })
+    }
+}
+
 // impl Pbkdf2Config {
 //     pub fn for_key_from_file(password_file: &Path, salt_file: Path) -> Pbkdf2Config {
 //         Pbkdf2Config {
