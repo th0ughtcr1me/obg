@@ -9,7 +9,7 @@ use pbkdf2::pbkdf2_hmac;
 use sha3::Sha3_256 as Sha256;
 use sha3::Sha3_384 as Sha384;
 use sha3::Sha3_512 as Sha512;
-use serde::{Deserialize, Serialize};
+use serde::{self, Deserialize, Serialize};
 
 
 pub fn pbkdf2_sha256(pw: &[u8], st: &[u8], it: u32, length: usize) -> Vec<u8> {
@@ -103,8 +103,11 @@ pub fn pbkdf2_sha512_256bits(pw: &[u8], st: &[u8], it: u32) -> B256 {
     result
 }
 #[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum DerivationScheme {
+    #[serde(rename = "pbkdf2")]
     Pbkdf2(Pbkdf2HashingAlgo),
+    #[serde(rename = "crc")]
     Crc(CrcAlgo),
 }
 impl YamlFile for DerivationScheme {

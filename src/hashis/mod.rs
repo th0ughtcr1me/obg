@@ -1,7 +1,7 @@
 use crc::{Crc, CRC_64_GO_ISO, CRC_64_WE};
 use crc::{CRC_32_JAMCRC, CRC_32_XFER, CRC_64_MS};
 use hex;
-use serde::{Deserialize, Serialize};
+use serde::{self, Deserialize, Serialize};
 use std::fmt;
 
 pub const GO_64: Crc<u64> = Crc::<u64>::new(&CRC_64_GO_ISO);
@@ -54,7 +54,9 @@ pub fn gcrc256(data: &[u8]) -> [u8; 32] {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum CrcAlgo {
+    #[serde(rename = "crc_gcrc128")]
     GcRc128,
+    #[serde(rename = "crc_gcrc256")]
     GcRc256,
 }
 

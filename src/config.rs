@@ -158,12 +158,12 @@ mod config_tests {
     pub fn test_default_config_to_yaml() -> Result<(), Error> {
         assert_equal!(Config::default()?.to_yaml()?, "default:
   password:
-    derivation: !Pbkdf2 Sha3_512
+    derivation: pbkdf2_sha3_512
     source:
     - /dev/random
     source_hwm: 1048576
   iv:
-    derivation: !Pbkdf2 Sha3_512
+    derivation: pbkdf2_sha3_512
     shuffle: false
     source:
     - /dev/random

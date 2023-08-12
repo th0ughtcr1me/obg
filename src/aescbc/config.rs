@@ -8,6 +8,7 @@ use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AesCbcPaddingMethod {
+    #[serde(rename = "padding_ansix923")]
     Ansix923,
 }
 
@@ -51,7 +52,9 @@ impl YamlFile for AesCbcPaddingConfig {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Pbkdf2BlockLength {
+    #[serde(rename = "128bits")]
     L128,
+    #[serde(rename = "256bits")]
     L256,
 }
 impl fmt::Display for Pbkdf2BlockLength {
@@ -69,8 +72,11 @@ impl fmt::Display for Pbkdf2BlockLength {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Pbkdf2HashingAlgo {
+    #[serde(rename = "pbkdf2_sha3_256")]
     Sha3_256,
+    #[serde(rename = "pbkdf2_sha3_384")]
     Sha3_384,
+    #[serde(rename = "pbkdf2_sha3_512")]
     Sha3_512,
 }
 
@@ -206,7 +212,7 @@ mod aescbcconfig_tests {
         let config = Aes256CbcConfig::new(37, [0x47; 32], [0x54; 16]);
 
         let serialized = serde_yaml::to_string(&config).unwrap();
-        assert_equal!(serialized, "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '54545454545454545454545454545454'\npadding:\n  method: Ansix923\n  padbyte: 37\n");
+        assert_equal!(serialized, "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '54545454545454545454545454545454'\npadding:\n  method: padding_ansix923\n  padbyte: 37\n");
 
         let deserialized: Aes256CbcConfig = serde_yaml::from_str(&serialized).unwrap();
         assert_equal!(deserialized, config);
@@ -220,7 +226,7 @@ mod aescbcconfig_tests {
         expected = "key length is 27 instead of 32 for string acacacacacacacacacacacacacacacacacacacacacacacacacacac"
     )]
     pub fn test_deserialize_invalid_key_size() {
-        let serialized = "key: 'acacacacacacacacacacacacacacacacacacacacacacacacacacac'\niv: 'aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae'\npadding:\n  method: Ansix923\n  padbyte: 165\n";
+        let serialized = "key: 'acacacacacacacacacacacacacacacacacacacacacacacacacacac'\niv: 'aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae'\npadding:\n  method: padding_ansix923\n  padbyte: 165\n";
         let deserialized: Aes256CbcConfig = serde_yaml::from_str(&serialized).unwrap();
         deserialized.get_key().unwrap();
     }
@@ -228,7 +234,7 @@ mod aescbcconfig_tests {
     #[test]
     #[should_panic(expected = "odd length")]
     pub fn test_deserialize_invalid_iv_size_odd_length() {
-        let serialized = "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '4'\npadding:\n  method: Ansix923\n  padbyte: 42\n";
+        let serialized = "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '4'\npadding:\n  method: padding_ansix923\n  padbyte: 42\n";
         let deserialized: Aes256CbcConfig = serde_yaml::from_str(&serialized).unwrap();
         deserialized.get_iv().unwrap();
     }
@@ -236,7 +242,7 @@ mod aescbcconfig_tests {
     #[test]
     #[should_panic(expected = "iv length is 1 instead of 16 for string 04")]
     pub fn test_deserialize_invalid_iv_size() {
-        let serialized = "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '04'\npadding:\n  method: Ansix923\n  padbyte: 42\n";
+        let serialized = "key: '4747474747474747474747474747474747474747474747474747474747474747'\niv: '04'\npadding:\n  method: padding_ansix923\n  padbyte: 42\n";
         let deserialized: Aes256CbcConfig = serde_yaml::from_str(&serialized).unwrap();
         deserialized.get_iv().unwrap();
     }

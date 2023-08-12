@@ -23,6 +23,7 @@ rpassword = "7.2.0"
 # rand_core = { version = "0.6.4", features = ["alloc", "getrandom", "std", "serde"] } # re-exported by aes->cipher->crypto-common->generic-array
 serde = { version = "1.0.171", features = ["derive", "rc", "alloc"] }
 serde_json = { version = "1.0.103", features = ["alloc", "preserve_order", "indexmap", "float_roundtrip", "arbitrary_precision"] }
+serde_repr = "0.1.16"
 serde_yaml = "0.9.23"
 sha3 = "0.10.8"
 shellexpand = { version = "3.1.0", features = ["full"] }
