@@ -54,6 +54,6 @@ From there the encryption/decryption works the same as above.
 ## Pro Tips
 
 
-Both ``--password`` or ``-salt`` arguments of ``obg keygen`` can be
+Both ``--password`` or ``-salt`` options of ``obg keygen`` can be
 paths to files, but if the given path don't exist in the file-system
-the password or salt will be that path.
+the password or salt will be that path. Those options can be repeated to create a chain of (un)seemingly random bytes.
