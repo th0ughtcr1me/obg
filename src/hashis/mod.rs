@@ -39,9 +39,35 @@ pub fn gcrc256(data: &[u8]) -> [u8; 32] {
     let mut result = [0xff; 32];
     let mut lhs = gcrc128(&data);
     lhs.reverse();
-    let rhs00 = hex::decode(format!("{:x}", MS_64.checksum(&data))).unwrap();
-    let rhs01 = hex::decode(format!("{:x}", JC_32.checksum(&data))).unwrap();
-    let rhs10 = hex::decode(format!("{:x}", XF_32.checksum(&data))).unwrap();
+    let mut ms64: [u8; 16] = *b"0000000000000000";
+    let mut jc32: [u8; 8] = *b"00000000";
+    let mut xf32: [u8; 8] = *b"00000000";
+
+    let prems64 = format!("{:x}", MS_64.checksum(&data)).as_bytes().to_vec();
+    let modms64 =  prems64.len() % 16;
+    if modms64 > 0 {
+        ms64[..modms64].copy_from_slice(&prems64);
+    } else {
+        ms64.copy_from_slice(&prems64);
+    }
+    let prejc32 = format!("{:x}", JC_32.checksum(&data)).as_bytes().to_vec();
+    let modjc32 =  prejc32.len() % 8;
+    if modjc32 > 0 {
+        jc32[..modjc32].copy_from_slice(&prejc32);
+    } else {
+        jc32.copy_from_slice(&prejc32);
+    }
+    let prexf32 = format!("{:x}", XF_32.checksum(&data)).as_bytes().to_vec();
+    let modxf32 = prexf32.len() % 8;
+    if modxf32 > 0 {
+        xf32[..modxf32].copy_from_slice(&prexf32);
+    } else {
+        xf32.copy_from_slice(&prexf32);
+    }
+
+    let rhs00 = hex::decode(ms64).expect("failed to CRC64_MS");
+    let rhs01 = hex::decode(jc32).expect("failed to CRC32_JC");
+    let rhs10 = hex::decode(xf32).expect("failed to CRC32_XF");
     let mut rhs = gcrc128(&data);
     let pos = 32 / 2 / 2;
     rhs[..pos].copy_from_slice(&rhs00);

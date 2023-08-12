@@ -51,20 +51,38 @@ pub trait KeyDeriver {
 pub struct KeygenArgs {
     #[arg(short, long, env = "OBG_KEY_FILE")]
     pub output_file: String,
+
     #[arg(
         short,
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_PASSWORD"
     )]
-    pub password: String,
+    pub password: Vec<String>,
+
+    #[arg(
+        long,
+        requires_if("false", "interactive"),
+        env = "OBG_PBDKF2_PASSWORD_HWM",
+        default_value_t = 0x40000000,
+    )]
+    pub password_hwm: u64,
+
     #[arg(
         short,
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_SALT"
     )]
-    pub salt: String,
+    pub salt: Vec<String>,
+
+    #[arg(
+        long,
+        requires_if("false", "interactive"),
+        env = "OBG_PBDKF2_SALT_HWM",
+        default_value_t = 0x100000,
+    )]
+    pub salt_hwm: u64,
 
     #[arg(
         short,
@@ -74,12 +92,14 @@ pub struct KeygenArgs {
         default_value_t = 1337
     )]
     pub cycles: u32,
+
     #[arg(
         short = 'r',
         long = "randomize-iv",
         help = "performs random shuffling in the generated IV"
     )]
     pub shuffle_iv: bool,
+
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
 }
@@ -101,7 +121,7 @@ pub struct KeyOptions {
     #[arg(short, long, required = false)] //, overrides_with_all(["password", "salt"]))]
     pub key_file: String,
     // #[arg(short, long, required=false)]
-    // pub password: String,
+    // pub password: Vec<String>,
     // #[arg(short, long, required=false)]
     // pub salt: String,
     // #[arg(short, long, default_value_t = 1337)]

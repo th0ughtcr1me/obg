@@ -19,6 +19,8 @@ pub use crate::aescbc::pad::Ansix923;
 pub use crate::aescbc::pad::Padder128;
 pub use crate::aescbc::pad::Padding;
 pub use crate::aescbc::tp::{B128, B256};
+pub use crate::hashis::gcrc128;
+pub use crate::hashis::gcrc256;
 pub use crate::errors::Error;
 pub use crate::ioutils::{absolute_path, open_write, read_bytes};
 use hex;
@@ -87,31 +89,34 @@ impl Aes256Key {
             version: format!("obg-version-{}", env!("CARGO_PKG_VERSION")),
         }
     }
-
     pub fn derive(
-        password: String,
-        salt: String,
+        passwords: Vec<String>,
+        salts: Vec<String>,
         cycles: u32,
         shuffle_iv: bool,
     ) -> Result<Aes256Key, Error> {
         let mut rng = rand::thread_rng();
 
-        let password_file = Path::new(&password);
-        let salt_file = Path::new(&salt);
+        let mut password = Vec::<u8>::new();
+        for sec in passwords {
+            password.extend(if Path::new(&sec).exists() {
+                read_bytes(&sec)?
+            } else {
+                sec.as_str().as_bytes().to_vec()
+            });
+        }
 
-        let password = if password_file.exists() {
-            read_bytes(&password)?
-        } else {
-            password.as_str().as_bytes().to_vec()
-        };
-        let salt = if salt_file.exists() {
-            read_bytes(&salt)?
-        } else {
-            salt.as_str().as_bytes().to_vec()
-        };
+        let mut salt = Vec::<u8>::new();
+        for st in salts {
+            salt.extend(if Path::new(&st).exists() {
+                read_bytes(&st)?
+            } else {
+                st.as_str().as_bytes().to_vec()
+            });
+        }
 
         let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
-        let mut iv = pbkdf2_sha384_128bits(&salt, &password, cycles / 0xa);
+        let mut iv = xor_128(gcrc128(&salt), gcrc128(&gcrc256(&password)[12..30]));
         if shuffle_iv {
             iv.shuffle(&mut rng);
         }
@@ -131,7 +136,6 @@ impl Aes256Key {
             )))
         }
     }
-
     pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
         let mut file = open_write(&filename).unwrap();
         let yaml = serde_yaml::to_string(self)?;
@@ -158,6 +162,17 @@ impl Aes256CbcCodec {
             cipher: Aes256::new(&gkey),
             key: key,
             iv: iv,
+            padding: padding,
+        }
+    }
+    pub fn new_with_key(key: Aes256Key) -> Aes256CbcCodec {
+        let padding = Padding::Ansix923(Ansix923::new(0xff as u8));
+        let gkey = key.skey();
+        let giv = key.siv();
+        Aes256CbcCodec {
+            cipher: Aes256::new(&GenericArray::from(gkey)),
+            key: gkey,
+            iv: giv,
             padding: padding,
         }
     }
@@ -236,7 +251,7 @@ impl EncryptionEngine for Aes256CbcCodec {
 
 #[cfg(test)]
 mod aes256cbc_tests {
-    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, EncryptionEngine, B128, B256};
+    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256};
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
     use crate::ioutils::read_bytes;
@@ -695,6 +710,31 @@ mod aes256cbc_tests {
 
         // Given I initialize a Aes256CbcCodec with a key and IV
         let cdc = Aes256CbcCodec::new(key, iv);
+
+        // When I encrypt the combined plaintext
+        let ciphertext = cdc.encrypt_blocks(&plaintext);
+
+        // And subsequently decrypt that ciphertext
+        let decrypted = cdc.decrypt_blocks(&ciphertext);
+
+        // Then the result should match the original plaintext
+        assert_equal!(decrypted.len() - plaintext_length, 0);
+        assert_equal!(decrypted.len(), plaintext_length);
+        assert_equal!(plaintext, decrypted);
+    }
+    #[test]
+    pub fn test_codec_aes256_cbc_encrypt_derive() {
+        // Background: I have a Aes256Key
+        let password = "cypher where is tank?".to_string();
+        let salt = "soul society".to_string();
+        let key = Aes256Key::derive([password].to_vec(), [salt].to_vec(), 0x35, false).expect("it appears that the key cannot be derived in this instant");
+
+        // Background: There is a buffer whose length has a remainder with modulus 16
+        let plaintext = read_bytes("tests/plaintext.jpg").unwrap();
+        let plaintext_length = plaintext.len();
+
+        // Given I initialize a Aes256CbcCodec with a Aes256Key
+        let cdc = Aes256CbcCodec::new_with_key(key);
 
         // When I encrypt the combined plaintext
         let ciphertext = cdc.encrypt_blocks(&plaintext);

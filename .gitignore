@@ -1,44 +1,9 @@
 /target
 /*.txt
-
-# <git-ignore at=@2023-07-31-132021-UTC+0000
-.obg-key.yaml
-# </git-ignore>
-# <2023-07-31-132021-UTC />
-
-
-# <git-ignore at=@2023-07-31-132021-UTC+0000
+.obg-key*.yaml
 tests/ciphertext.jpg
-# </git-ignore>
-# <2023-07-31-132021-UTC />
-
-
-# <git-ignore at=@2023-08-01-004729-UTC+0000
-obg-key.yaml
-# </git-ignore>
-# <2023-08-01-004729-UTC />
-
-
-# <git-ignore at=@2023-08-01-004729-UTC+0000
+obg-key*.yaml
 tests/decrypted.jpg
-# </git-ignore>
-# <2023-08-01-004729-UTC />
-
-
-# <git-ignore at=@2023-08-01-004729-UTC+0000
 tests/testcases.cipher
-# </git-ignore>
-# <2023-08-01-004729-UTC />
-
-
-# <git-ignore at=@2023-08-01-004729-UTC+0000
 tests/testcases.plain
-# </git-ignore>
-# <2023-08-01-004729-UTC />
-
-
-# <git-ignore at=@2023-08-01-004729-UTC+0000
 tests/testcases.yaml
-# </git-ignore>
-# <2023-08-01-004729-UTC />
-

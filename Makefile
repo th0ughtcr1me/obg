@@ -55,7 +55,7 @@ run build test: check
 	cargo $@
 
 $(OBG_KEY0):
-	$(OBG_RUN) keygen -p tests/key.png -s tests/iv.png -o $@
+	$(OBG_RUN) keygen -p "konichiwa" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@
 
 $(OBG_KEY1):
 	$(OBG_RUN) keygen -p tests/key.rst -s tests/iv.dat -o $@
