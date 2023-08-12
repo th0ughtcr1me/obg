@@ -6,7 +6,6 @@ use crate::ioutils::{absolute_path, resolved_path};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct PasswordConfig {
     pub derivation: DerivationScheme,
@@ -27,7 +26,10 @@ impl PasswordConfig {
     }
     pub fn set_source_hwm(&mut self, high_water_mark: u64) -> Result<bool, Error> {
         if high_water_mark < 32 {
-            return Err(Error::InvalidConfig(format!("the minimum high-water-mark is 32 bytes, got {} instead", high_water_mark)))
+            return Err(Error::InvalidConfig(format!(
+                "the minimum high-water-mark is 32 bytes, got {} instead",
+                high_water_mark
+            )));
         }
         let current = self.source_hwm.clone();
         self.source_hwm = high_water_mark;
@@ -116,7 +118,7 @@ impl Config {
                 let mut tree = BTreeMap::new();
                 tree.insert(resolved_path(path), config);
                 self.tree = Some(tree);
-            },
+            }
             Some(ref mut tree) => {
                 tree.insert(resolved_path(path), config);
                 self.tree = Some(tree.clone());
@@ -129,7 +131,7 @@ impl Config {
                 let mut tree = BTreeMap::new();
                 tree.remove(path);
                 self.tree = Some(tree);
-            },
+            }
             Some(ref mut tree) => {
                 tree.remove(path);
                 self.tree = Some(tree.clone());
@@ -146,7 +148,6 @@ impl YamlFile for Config {
     }
 }
 
-
 #[cfg(test)]
 mod config_tests {
     use crate::config::Config;
@@ -156,7 +157,7 @@ mod config_tests {
 
     #[test]
     pub fn test_default_config_to_yaml() -> Result<(), Error> {
-        let valid_yaml= "default:
+        let valid_yaml = "default:
   password:
     derivation: pbkdf2_sha3_512
     source:
@@ -170,11 +171,11 @@ mod config_tests {
     source_hwm: 1073741824
   path: .
 tree: {}
-".to_string();
+"
+        .to_string();
 
         assert_equal!(Config::default()?.to_yaml()?, valid_yaml);
         assert_equal!(Config::from_yaml(valid_yaml)?, Config::default()?);
         Ok(())
     }
-
 }

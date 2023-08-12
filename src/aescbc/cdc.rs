@@ -88,7 +88,12 @@ impl Aes256Key {
         }
     }
 
-    pub fn derive(password: String, salt: String, cycles: u32, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+    pub fn derive(
+        password: String,
+        salt: String,
+        cycles: u32,
+        shuffle_iv: bool,
+    ) -> Result<Aes256Key, Error> {
         let mut rng = rand::thread_rng();
 
         let password_file = Path::new(&password);
@@ -162,7 +167,6 @@ impl Aes256CbcCodec {
     pub fn cipher(&self) -> Aes256 {
         Aes256::new(&(self.key).into())
     }
-
 }
 
 impl EncryptionEngine for Aes256CbcCodec {

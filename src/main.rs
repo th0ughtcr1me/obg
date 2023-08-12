@@ -1,14 +1,14 @@
 use clap_builder::Parser;
 use hex;
-use obg::aescbc::EncryptionEngine;
 use obg::aescbc::Aes256CbcCodec;
+use obg::aescbc::EncryptionEngine;
 use obg::clap::{Cli, Command, Decrypt, Encrypt};
 use obg::clap::{KeyDeriver, KeyLoader};
 use obg::errors::Error;
 use obg::ioutils::absolute_path;
 use obg::ioutils::open_write;
 use obg::ioutils::read_bytes;
-use std::io::{Write};
+use std::io::Write;
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {

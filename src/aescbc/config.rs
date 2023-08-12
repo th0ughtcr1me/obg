@@ -100,8 +100,6 @@ impl YamlFile for Pbkdf2HashingAlgo {
     }
 }
 
-
-
 impl Pbkdf2BlockLength {
     pub fn get(&self) -> usize {
         match self {

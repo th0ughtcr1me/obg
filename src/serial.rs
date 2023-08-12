@@ -24,7 +24,8 @@ pub trait YamlFile {
                 return Err(YamlFileError::with_message(format!(
                     "failed to deserialize yaml config: {}",
                     error
-                )).into())
+                ))
+                .into())
             }
         };
         Ok(cfg)
@@ -38,7 +39,8 @@ pub trait YamlFile {
             Err(e) => Err(YamlFileError::with_message(format!(
                 "failed to encode key to yaml: {}",
                 e
-            )).into()),
+            ))
+            .into()),
         }
     }
 
@@ -58,8 +60,9 @@ pub trait YamlFile {
             Err(error) => {
                 return Err(YamlFileError::with_message(format!(
                     "faled to read file {}\n\t{}",
-                    filename,error
-                )).into())
+                    filename, error
+                ))
+                .into())
             }
         }
     }
@@ -79,9 +82,9 @@ pub trait YamlFile {
             Err(error) => {
                 return Err(YamlFileError::with_message(format!(
                     "failed to create file {}\n\t{}",
-                    filename,
-                    error
-                )).into())
+                    filename, error
+                ))
+                .into())
             }
         };
         file.write(yaml.as_ref()).unwrap();

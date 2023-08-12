@@ -1,16 +1,15 @@
-use crate::errors::Error;
+use crate::aescbc::config::Pbkdf2HashingAlgo;
 use crate::aescbc::tp::B128;
 use crate::aescbc::tp::B256;
-use crate::aescbc::config::Pbkdf2HashingAlgo;
+use crate::errors::Error;
+use crate::hashis::CrcAlgo;
 use crate::serial::YamlFile;
-use crate::hashis::{CrcAlgo};
-use std::fmt;
 use pbkdf2::pbkdf2_hmac;
+use serde::{self, Deserialize, Serialize};
 use sha3::Sha3_256 as Sha256;
 use sha3::Sha3_384 as Sha384;
 use sha3::Sha3_512 as Sha512;
-use serde::{self, Deserialize, Serialize};
-
+use std::fmt;
 
 pub fn pbkdf2_sha256(pw: &[u8], st: &[u8], it: u32, length: usize) -> Vec<u8> {
     let mut key: Vec<u8> = Vec::with_capacity(length);
@@ -72,7 +71,6 @@ pub fn pbkdf2_sha384_256bits(pw: &[u8], st: &[u8], it: u32) -> B256 {
     result
 }
 
-
 pub fn pbkdf2_sha512(pw: &[u8], st: &[u8], it: u32, length: usize) -> Vec<u8> {
     let mut key: Vec<u8> = Vec::with_capacity(length);
     key.resize(length, 0x00);
@@ -129,7 +127,6 @@ impl fmt::Display for DerivationScheme {
     }
 }
 
-
 #[cfg(test)]
 mod pbkdf2_sha256_tests {
     use crate::aescbc::kd::pbkdf2_sha256;
@@ -184,7 +181,7 @@ mod pbkdf2_sha256_tests {
                 91, 24, 54, 211, 113, 54, 159, 162, 131, 93, 207, 241, 44, 38, 220, 17, 16, 99, 9,
                 64, 239, 173, 83, 104, 28, 34, 50, 16, 41, 179, 154, 102,
             ]
-                .to_vec()
+            .to_vec()
         );
     }
 }
@@ -212,7 +209,7 @@ mod pbkdf2_sha384_tests {
                 93, 54, 175, 45, 68, 96, 125, 7, 49, 146, 221, 87, 219, 228, 6, 0, 128, 221, 20,
                 87, 97, 169, 129, 27,
             ]
-                .to_vec()
+            .to_vec()
         );
     }
     #[test]
@@ -246,11 +243,10 @@ mod pbkdf2_sha384_tests {
                 56, 255, 253, 85, 18, 209, 194, 89, 130, 57, 3, 250, 221, 102, 61, 59, 85, 91, 72,
                 222, 83, 73, 20, 151, 88, 22, 187, 112, 141, 81, 14, 76,
             ]
-                .to_vec()
+            .to_vec()
         );
     }
 }
-
 
 #[cfg(test)]
 mod pbkdf2_sha512_tests {
@@ -272,32 +268,10 @@ mod pbkdf2_sha512_tests {
         assert_equal!(
             dhmac,
             [
-                184,
-                99,
-                158,
-                94,
-                97,
-                151,
-                140,
-                231,
-                108,
-                96,
-                184,
-                54,
-                220,
-                203,
-                203,
-                67,
-                132,
-                16,
-                88,
-                226,
-                230,
-                174,
-                32,
-                237,
+                184, 99, 158, 94, 97, 151, 140, 231, 108, 96, 184, 54, 220, 203, 203, 67, 132, 16,
+                88, 226, 230, 174, 32, 237,
             ]
-                .to_vec()
+            .to_vec()
         );
     }
     #[test]
@@ -312,24 +286,7 @@ mod pbkdf2_sha512_tests {
         assert_equal!(dhmac.len(), 16);
         assert_equal!(
             dhmac.to_vec(),
-            [
-                156,
-                156,
-                3,
-                166,
-                110,
-                7,
-                99,
-                128,
-                90,
-                0,
-                187,
-                86,
-                215,
-                93,
-                116,
-                123,
-            ].to_vec()
+            [156, 156, 3, 166, 110, 7, 99, 128, 90, 0, 187, 86, 215, 93, 116, 123,].to_vec()
         );
     }
     #[test]
@@ -345,40 +302,10 @@ mod pbkdf2_sha512_tests {
         assert_equal!(
             dhmac.to_vec(),
             [
-                47,
-                66,
-                192,
-                225,
-                237,
-                29,
-                47,
-                172,
-                203,
-                194,
-                0,
-                95,
-                190,
-                53,
-                191,
-                28,
-                179,
-                222,
-                195,
-                71,
-                131,
-                26,
-                76,
-                44,
-                145,
-                194,
-                187,
-                9,
-                105,
-                104,
-                203,
-                103,
+                47, 66, 192, 225, 237, 29, 47, 172, 203, 194, 0, 95, 190, 53, 191, 28, 179, 222,
+                195, 71, 131, 26, 76, 44, 145, 194, 187, 9, 105, 104, 203, 103,
             ]
-                .to_vec()
+            .to_vec()
         );
     }
 }

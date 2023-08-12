@@ -1,6 +1,6 @@
 pub mod aescbc;
-pub mod config;
 pub mod clap;
+pub mod config;
 pub mod errors;
 pub mod hashis;
 pub mod ioutils;

@@ -5,8 +5,8 @@ use crate::errors::Error;
 use clap::*;
 use shellexpand;
 use std::fs::File;
+use std::io::BufReader;
 use std::io::{self, Read};
-use std::io::{BufReader};
 // use std::path::Path;
 
 pub fn absolute_path(src: &str) -> String {
@@ -98,7 +98,7 @@ impl KeyDeriver for KeygenArgs {
 #[derive(Args, Debug)]
 #[group(multiple = false)]
 pub struct KeyOptions {
-    #[arg(short, long, required=false)] //, overrides_with_all(["password", "salt"]))]
+    #[arg(short, long, required = false)] //, overrides_with_all(["password", "salt"]))]
     pub key_file: String,
     // #[arg(short, long, required=false)]
     // pub password: String,
@@ -106,7 +106,6 @@ pub struct KeyOptions {
     // pub salt: String,
     // #[arg(short, long, default_value_t = 1337)]
     // pub cycles: u32,
-
     #[arg(
         short = 'r',
         long = "rand-iv",
