@@ -8,6 +8,7 @@ use obg::errors::Error;
 use obg::ioutils::absolute_path;
 use obg::ioutils::open_write;
 use obg::ioutils::read_bytes;
+use obg::ioutils::file_exists;
 use std::io::Write;
 // use url::{Url, Host, Position};
 
@@ -17,6 +18,9 @@ fn main() -> Result<(), Error> {
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;
+            if file_exists(&key_file) {
+                panic!("{} already exists", key_file);
+            }
             key.save_to_file(key_file.clone())?;
             eprintln!("saved {}", key_file);
         }
