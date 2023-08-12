@@ -48,6 +48,7 @@ pub struct KeygenArgs {
     pub password: Vec<String>,
 
     #[arg(
+        short = 'P',
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_PASSWORD_HWM",
@@ -64,6 +65,7 @@ pub struct KeygenArgs {
     pub salt: Vec<String>,
 
     #[arg(
+        short = 'S',
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_SALT_HWM",
