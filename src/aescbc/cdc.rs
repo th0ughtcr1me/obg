@@ -729,7 +729,7 @@ mod aes256cbc_tests {
         // Background: I have a Aes256Key
         let password = "cypher where is tank?".to_string();
         let salt = "soul society".to_string();
-        let key = Aes256Key::derive([password].to_vec(), [salt].to_vec(), 0x35, false).expect("it appears that the key cannot be derived in this instant");
+        let key = Aes256Key::derive([password].to_vec(), u64::MAX, [salt].to_vec(), u64::MAX, 0x35, false).expect("it appears that the key cannot be derived in this instant");
 
         // Background: There is a buffer whose length has a remainder with modulus 16
         let plaintext = read_bytes("tests/plaintext.jpg").unwrap();
