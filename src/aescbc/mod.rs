@@ -3,7 +3,7 @@
 > The inventor of a cryptosystem must not only find a means for
 > rendering information unintelligible, he must use a process which
 > is logical and reproducible at the receiving end. All of you know
-> already that we use things cslled "keys" which absolutely
+> already that we use things called "keys" which absolutely
 > determine the specific encryption process. It follows from what I
 > have just said that we always produce at least two of them, one
 > for. the sender. one for the recipient. Through its application,
