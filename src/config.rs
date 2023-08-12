@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct PasswordConfig {
     pub derivation: DerivationScheme,
     source: Vec<String>, // vector of strings or files
@@ -44,7 +44,7 @@ impl YamlFile for PasswordConfig {
     }
 }
 
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct IVConfig {
     derivation: DerivationScheme,
     shuffle: bool,
@@ -63,7 +63,7 @@ impl YamlFile for IVConfig {
     }
 }
 
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct GeoConfig {
     password: PasswordConfig,
     iv: IVConfig,
@@ -101,7 +101,7 @@ impl YamlFile for GeoConfig {
     }
 }
 
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
     default: GeoConfig,
     tree: Option<BTreeMap<String, GeoConfig>>,
@@ -156,7 +156,7 @@ mod config_tests {
 
     #[test]
     pub fn test_default_config_to_yaml() -> Result<(), Error> {
-        assert_equal!(Config::default()?.to_yaml()?, "default:
+        let valid_yaml= "default:
   password:
     derivation: pbkdf2_sha3_512
     source:
@@ -170,7 +170,10 @@ mod config_tests {
     source_hwm: 1073741824
   path: .
 tree: {}
-".to_string());
+".to_string();
+
+        assert_equal!(Config::default()?.to_yaml()?, valid_yaml);
+        assert_equal!(Config::from_yaml(valid_yaml)?, Config::default()?);
         Ok(())
     }
 

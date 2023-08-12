@@ -102,7 +102,7 @@ pub fn pbkdf2_sha512_256bits(pw: &[u8], st: &[u8], it: u32) -> B256 {
     }
     result
 }
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum DerivationScheme {
     #[serde(rename = "pbkdf2")]
