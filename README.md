@@ -51,6 +51,18 @@ obg keygen --password "here goes your password" --salt "here goes your salt" --r
 From there the encryption/decryption works the same as above.
 
 
+### Generating an AES-256-CBC key out of pseudo-random bytes
+
+```bash
+dd if=/dev/random of="$(pwd)/password72.bin" bs=9 count=8
+dd if=/dev/random of="$(pwd)/salt.bin" bs=5 count=8
+obg keygen --password "$(pwd)/password72.bin" --salt "$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o key-made-of-dev-random.yml
+rm -f "$(pwd)/salt.bin" "$(pwd)/password72.bin"
+```
+
+From there the encryption/decryption works the same as above.
+
+
 ## Pro Tips
 
 
