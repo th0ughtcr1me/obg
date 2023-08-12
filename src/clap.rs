@@ -106,6 +106,29 @@ pub struct KeygenArgs {
 
 impl KeyDeriver for KeygenArgs {
     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
+        if self.password.len() == 0 {
+            // let mut e = clap::error::Error::new(ErrorKind::MissingRequiredArgument);
+            // e.insert(clap::error::ContextKind::Custom, clap::error::ContextValue::String("at least one password is required".to_string()));
+            // return Err(e.into());
+            panic!("at least one password is required");
+        } else {
+            for (index, sec) in self.password.iter().enumerate() {
+                if sec.len() == 0 {
+                    panic!("password at position {} is empty", index);
+                }
+            }
+        }
+        if self.salt.len() == 0 {
+            panic!("at least one salt is required");
+        } else {
+            for (index, st) in self.salt.iter().enumerate() {
+                if st.len() == 0 {
+                    panic!("salt at position {} is empty", index);
+                }
+            }
+        }
+
+
         Aes256Key::derive(
             self.password.clone(),
             self.salt.clone(),
