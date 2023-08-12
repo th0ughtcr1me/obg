@@ -8,6 +8,7 @@ description = "encrypt or decrypt something with nothing or vice-versa"
 documentation = "https://docs.rs/obg"
 readme = "README.md"
 homepage = "https://github.com/whynothingmatters/obg"
+exclude = ["tests", "docs"]
 
 [dependencies]
 aes = { version = "0.8.3", features = ["hazmat", "zeroize"] }
