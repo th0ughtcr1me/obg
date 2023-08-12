@@ -3,22 +3,9 @@ use crate::aescbc::Aes256Key;
 use crate::errors::Error;
 // use atty::Stream;
 use clap::*;
-use shellexpand;
-use std::fs::File;
-use std::io::BufReader;
 use std::io::{self, Read};
 // use std::path::Path;
 
-pub fn absolute_path(src: &str) -> String {
-    String::from(shellexpand::tilde(src))
-}
-
-pub fn read_file(filename: &str) -> Vec<u8> {
-    let mut reader = BufReader::new(File::open(filename).unwrap());
-    let mut bytes = Vec::new();
-    reader.read_to_end(&mut bytes).unwrap();
-    bytes
-}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -131,7 +118,9 @@ impl KeyDeriver for KeygenArgs {
 
         Aes256Key::derive(
             self.password.clone(),
+            self.password_hwm,
             self.salt.clone(),
+            self.salt_hwm,
             self.cycles,
             shuffle_iv,
         )

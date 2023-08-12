@@ -22,7 +22,7 @@ pub use crate::aescbc::tp::{B128, B256};
 pub use crate::hashis::gcrc128;
 pub use crate::hashis::gcrc256;
 pub use crate::errors::Error;
-pub use crate::ioutils::{absolute_path, open_write, read_bytes};
+pub use crate::ioutils::{absolute_path, open_write, read_bytes_high_water_mark, read_bytes};
 use hex;
 use rand::prelude::*;
 use serde_yaml;
@@ -91,7 +91,9 @@ impl Aes256Key {
     }
     pub fn derive(
         passwords: Vec<String>,
+        password_hwm: u64,
         salts: Vec<String>,
+        salt_hwm: u64,
         cycles: u32,
         shuffle_iv: bool,
     ) -> Result<Aes256Key, Error> {
@@ -100,7 +102,7 @@ impl Aes256Key {
         let mut password = Vec::<u8>::new();
         for sec in passwords {
             password.extend(if Path::new(&sec).exists() {
-                read_bytes(&sec)?
+                read_bytes_high_water_mark(&sec, password_hwm)?
             } else {
                 sec.as_str().as_bytes().to_vec()
             });
@@ -109,7 +111,7 @@ impl Aes256Key {
         let mut salt = Vec::<u8>::new();
         for st in salts {
             salt.extend(if Path::new(&st).exists() {
-                read_bytes(&st)?
+                read_bytes_high_water_mark(&st, salt_hwm)?
             } else {
                 st.as_str().as_bytes().to_vec()
             });
