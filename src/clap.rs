@@ -1,11 +1,12 @@
 // use clap_builder::derive::*;
 use crate::aescbc::Aes256Key;
+use crate::aescbc::DerivationScheme;
+use crate::hashis::CrcAlgo;
 use crate::errors::Error;
 // use atty::Stream;
 use clap::*;
 use std::io::{self, Read};
 // use std::path::Path;
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -52,7 +53,7 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_PASSWORD_HWM",
-        default_value_t = 0x40000000,
+        default_value_t = 0x40000000
     )]
     pub password_hwm: u64,
 
@@ -69,9 +70,12 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_SALT_HWM",
-        default_value_t = 0x100000,
+        default_value_t = 0x100000
     )]
     pub salt_hwm: u64,
+
+    #[arg(long, default_value_t = DerivationScheme::Crc(CrcAlgo::GcRc256))]
+    pub salt_derivation_scheme: DerivationScheme,
 
     #[arg(
         short,
@@ -117,13 +121,13 @@ impl KeyDeriver for KeygenArgs {
             }
         }
 
-
         Aes256Key::derive(
             self.password.clone(),
             self.password_hwm,
             self.salt.clone(),
             self.salt_hwm,
             self.cycles,
+            self.salt_derivation_scheme.clone(),
             shuffle_iv,
         )
     }

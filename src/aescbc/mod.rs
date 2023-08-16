@@ -21,3 +21,4 @@ pub mod tp;
 pub mod xor;
 
 pub use cdc::*;
+pub use kd::*;

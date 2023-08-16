@@ -15,6 +15,7 @@ use obg::aescbc::cdc::Aes256CbcCodec;
 
 pub use crate::aescbc::kd::pbkdf2_sha384_128bits;
 pub use crate::aescbc::kd::pbkdf2_sha384_256bits;
+pub use crate::aescbc::kd::DerivationScheme;
 pub use crate::aescbc::pad::Ansix923;
 pub use crate::aescbc::pad::Padder128;
 pub use crate::aescbc::pad::Padding;
@@ -95,6 +96,7 @@ impl Aes256Key {
         salts: Vec<String>,
         salt_hwm: u64,
         cycles: u32,
+        salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
     ) -> Result<Aes256Key, Error> {
         let mut rng = rand::thread_rng();
@@ -118,7 +120,9 @@ impl Aes256Key {
         }
 
         let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
-        let mut iv = xor_128(gcrc128(&salt), gcrc128(&gcrc256(&password)[12..30]));
+        let dv = salt_derivation_scheme.derive(&salt, &password, cycles);
+        let mut iv = [0; 16];
+        iv.copy_from_slice(&dv[..16]);
         if shuffle_iv {
             iv.shuffle(&mut rng);
         }
@@ -254,6 +258,8 @@ impl EncryptionEngine for Aes256CbcCodec {
 #[cfg(test)]
 mod aes256cbc_tests {
     use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256};
+    use crate::aescbc::kd::DerivationScheme;
+    use crate::hashis::CrcAlgo;
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
     use crate::ioutils::read_bytes;
@@ -729,7 +735,7 @@ mod aes256cbc_tests {
         // Background: I have a Aes256Key
         let password = "cypher where is tank?".to_string();
         let salt = "soul society".to_string();
-        let key = Aes256Key::derive([password].to_vec(), u64::MAX, [salt].to_vec(), u64::MAX, 0x35, false).expect("it appears that the key cannot be derived in this instant");
+        let key = Aes256Key::derive([password].to_vec(), u64::MAX, [salt].to_vec(), u64::MAX, 0x35, DerivationScheme::Crc(CrcAlgo::GcRc256), false).expect("it appears that the key cannot be derived in this instant");
 
         // Background: There is a buffer whose length has a remainder with modulus 16
         let plaintext = read_bytes("tests/plaintext.jpg").unwrap();

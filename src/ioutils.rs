@@ -4,7 +4,6 @@ pub use std::env::current_dir;
 pub use std::fs::{File, OpenOptions};
 pub use std::io::{BufReader, Read, Write};
 pub use std::path::Path;
-use std::borrow::Borrow;
 
 pub struct ReadFile {
     pub bytes: Vec<u8>,
@@ -32,11 +31,10 @@ pub fn file_exists(path: &str) -> bool {
 }
 
 pub fn read_file(filename: &str, high_water_mark: u64) -> Result<ReadFile, Error> {
-    let handle = File::open(filename)?;
-    handle.borrow().take(high_water_mark);
-    let mut reader = BufReader::new(handle);
+    let file = File::open(filename)?;
+    let mut handle = file.take(high_water_mark);
     let mut bytes = Vec::new();
-    let length = reader.read_to_end(&mut bytes)?;
+    let length = handle.read_to_end(&mut bytes)?;
     Ok(ReadFile { bytes, length })
 }
 

@@ -14,7 +14,7 @@ use std::io::Write;
 
 fn main() -> Result<(), Error> {
     let mate = Cli::parse();
-    let _command = match mate.command {
+    match mate.command {
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;
