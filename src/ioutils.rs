@@ -30,19 +30,26 @@ pub fn file_exists(path: &str) -> bool {
     Path::new(path).exists()
 }
 
-pub fn read_file(filename: &str, high_water_mark: u64) -> Result<ReadFile, Error> {
-    let file = File::open(filename)?;
-    let mut handle = file.take(high_water_mark);
+pub fn read_file(filename: &str) -> Result<ReadFile, Error> {
+    let mut file = File::open(filename)?;
     let mut bytes = Vec::new();
-    let length = handle.read_to_end(&mut bytes)?;
+    let length = file.read_to_end(&mut bytes)?;
     Ok(ReadFile { bytes, length })
 }
 
 pub fn read_bytes_high_water_mark(filename: &str, hwm: u64) -> Result<Vec<u8>, Error> {
-    Ok(read_file(filename, hwm)?.bytes)
+    let file = File::open(filename)?;
+    let mut handle = file.take(hwm);
+    handle.set_limit(hwm);
+    let mut bytes = Vec::new();
+    handle.read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
 pub fn read_bytes(filename: &str) -> Result<Vec<u8>, Error> {
-    Ok(read_file(filename, u64::MAX)?.bytes)
+    let mut file = File::open(filename)?;
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
 
 pub fn open_write(target: &str) -> Result<std::fs::File, Error> {

@@ -21,7 +21,7 @@ pub fn gcrc128(data: &[u8]) -> [u8; 16] {
         we64.copy_from_slice(&prewe64);
     }
     let mut go64: [u8; 16] = *b"0000000000000000";
-    let prego64 = format!("{:x}", WE_64.checksum(&data)).as_bytes().to_vec();
+    let prego64 = format!("{:x}", GO_64.checksum(&data)).as_bytes().to_vec();
     let modgo64 = prego64.len() % 16;
     if modgo64 > 0 {
         go64[..modgo64].copy_from_slice(&prego64);
@@ -47,7 +47,24 @@ mod gcrc128_tests {
         let input = b"seemingly random bytes";
         assert_equal!(
             gcrc128(input).to_vec(),
-            [185, 59, 126, 244, 2, 252, 171, 21, 21, 171, 252, 2, 244, 126, 59, 185,].to_vec()
+            [
+                185,
+                59,
+                126,
+                244,
+                2,
+                252,
+                171,
+                21,
+                102,
+                82,
+                177,
+                220,
+                251,
+                137,
+                169,
+                191,
+            ].to_vec()
         );
     }
 }
@@ -128,10 +145,40 @@ mod gcrc256_tests {
         assert_equal!(
             result.to_vec(),
             [
-                185, 59, 126, 244, 2, 252, 171, 21, 21, 171, 252, 2, 244, 126, 59, 185, 179, 0,
-                173, 151, 198, 10, 130, 193, 46, 161, 160, 24, 27, 76, 161, 3,
+                191,
+                169,
+                137,
+                251,
+                220,
+                177,
+                82,
+                102,
+                21,
+                171,
+                252,
+                2,
+                244,
+                126,
+                59,
+                185,
+                179,
+                0,
+                173,
+                151,
+                198,
+                10,
+                130,
+                193,
+                46,
+                161,
+                160,
+                24,
+                27,
+                76,
+                161,
+                3,
             ]
-            .to_vec()
+                .to_vec()
         );
     }
 }

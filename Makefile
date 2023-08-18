@@ -65,10 +65,10 @@ $(OBG_KEY1):
 
 $(OBG_KEY2):
 	rm -f $@
-	# dd if=/dev/random of="$$(pwd)/0password72.bin" bs=9 count=8
-	# dd if=/dev/random of="$$(pwd)/0salt.bin" bs=5 count=8
-	# obg keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
-	obg keygen --password /dev/random --password-hwm 137 --salt "/dev/random" --salt-hwm 100 --randomize-iv --cycles 37000 -o $@
+	dd if=/dev/random of="$$(pwd)/0password72.bin" bs=9 count=8
+	dd if=/dev/random of="$$(pwd)/0salt.bin" bs=5 count=8
+	obg keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
+	# obg keygen --password /dev/random --password-hwm 137 --salt "/dev/random" --salt-hwm 100 --randomize-iv --cycles 42 -o $@
 
 	rm -f "$$(pwd)/salt.bin" "$$(pwd)/password72.bin"
 

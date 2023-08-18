@@ -53,7 +53,7 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_PASSWORD_HWM",
-        default_value_t = 0x40000000
+        default_value_t = 0x400
     )]
     pub password_hwm: u64,
 
@@ -70,7 +70,7 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_SALT_HWM",
-        default_value_t = 0x100000
+        default_value_t = 0x400
     )]
     pub salt_hwm: u64,
 
