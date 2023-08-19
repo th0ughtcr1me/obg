@@ -60,7 +60,7 @@ impl YamlFile for IVConfig {
             derivation: DerivationScheme::default()?,
             shuffle: false,
             source: vec!["/dev/random".into()],
-            source_hwm: 1024 * 1024 * 1024,
+            source_hwm: 1024 * 1024,
         })
     }
 }
@@ -168,7 +168,7 @@ mod config_tests {
     shuffle: false
     source:
     - /dev/random
-    source_hwm: 1073741824
+    source_hwm: 1048576
   path: .
 tree: {}
 "

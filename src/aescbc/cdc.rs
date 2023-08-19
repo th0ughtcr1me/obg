@@ -87,7 +87,7 @@ impl Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
-            version: format!("obg-version-{}", env!("CARGO_PKG_VERSION")),
+            version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
         }
     }
     pub fn derive(
@@ -221,7 +221,12 @@ impl EncryptionEngine for Aes256CbcCodec {
             };
             result.push(self.encrypt_block(block, xor_block));
         }
-        result.iter().flatten().map(|b| b.clone()).collect()
+        let opaque: Vec<u8> = result.iter().flatten().map(|b| b.clone()).collect();
+        // let mut ciphertext = Vec::<u8>::new();
+        // ciphertext.extend(self.magic_id());
+        // ciphertext.extend(opaque);
+        // ciphertext
+        opaque
     }
     fn decrypt_blocks(&self, ciphertext: &[u8]) -> Vec<u8> {
         let mut result: Vec<Vec<u8>> = Vec::new();
@@ -664,6 +669,7 @@ mod aes256cbc_tests {
             .map(|b| b.plaintext)
             .flatten()
             .collect();
+
         let expected_ciphertext: Vec<u8> = encryption_input
             .blocks
             .iter()

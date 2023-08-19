@@ -5,3 +5,4 @@ pub mod errors;
 pub mod hashis;
 pub mod ioutils;
 pub mod serial;
+pub mod sneaker;
