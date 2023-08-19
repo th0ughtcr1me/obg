@@ -136,7 +136,7 @@ impl KeyDeriver for KeygenArgs {
 #[derive(Args, Debug)]
 #[group(multiple = false)]
 pub struct KeyOptions {
-    #[arg(short, long, required = false)] //, overrides_with_all(["password", "salt"]))]
+    #[arg(short, long, required = false, env = "OBG_KEY_FILE")] //, overrides_with_all(["password", "salt"]))]
     pub key_file: String,
     // #[arg(short, long, required=false)]
     // pub password: Vec<String>,
