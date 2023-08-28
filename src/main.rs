@@ -5,11 +5,9 @@ use obg::aescbc::EncryptionEngine;
 use obg::clap::{Cli, Command, Decrypt, Encrypt};
 use obg::clap::{KeyDeriver, KeyLoader};
 use obg::errors::Error;
+use obg::pap::{encrypt_file, decrypt_file};
 use obg::ioutils::absolute_path;
-use obg::ioutils::open_write;
-use obg::ioutils::read_bytes;
 use obg::ioutils::file_exists;
-use std::io::Write;
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
@@ -34,12 +32,7 @@ fn main() -> Result<(), Error> {
             }
             Encrypt::File(args) => {
                 let key = args.load_key()?;
-                let codec = Aes256CbcCodec::new(key.skey(), key.siv());
-                let plaintext = read_bytes(&args.input_file)?;
-                let ciphertext = codec.encrypt_blocks(&plaintext);
-                let mut file = open_write(&args.output_file)?;
-                file.write_all(&ciphertext)?;
-                eprintln!("wrote {}", args.output_file);
+                encrypt_file(key, args.input_file, args.output_file)?
             }
         },
         Command::Decrypt(instruction) => match instruction {
@@ -52,12 +45,8 @@ fn main() -> Result<(), Error> {
             }
             Decrypt::File(args) => {
                 let key = args.load_key()?;
-                let codec = Aes256CbcCodec::new(key.skey(), key.siv());
-                let ciphertext = read_bytes(&args.input_file)?;
-                let plaintext = codec.decrypt_blocks(&ciphertext);
-                let mut file = open_write(&args.output_file)?;
-                file.write_all(&plaintext)?;
-                eprintln!("wrote {}", args.output_file);
+                decrypt_file(key, args.input_file, args.output_file)?
+
             }
         },
     };

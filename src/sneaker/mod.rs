@@ -1,4 +1,4 @@
-mod core {
+pub mod core {
     pub const MAGIC_WIDTH: usize = 33;
 
     pub fn magic_id() -> Vec<u8> {
@@ -11,12 +11,12 @@ mod core {
     }
 }
 
-mod io {
+pub mod io {
     use crate::sneaker::core;
     use crate::errors::Error;
-    use std::io::{BufRead, Read, Seek};
+    use std::io::{Read, Seek};
 
-    pub fn is_snuck<S: Read + Seek + BufRead>(source: &mut S) -> Result<bool, Error> {
+    pub fn is_snuck<S: Read + Seek>(source: &mut S) -> Result<bool, Error> {
         let mut start: Vec<u8> = Vec::new();
         start.resize(core::MAGIC_WIDTH, 0x37);
         source.rewind()?;

@@ -1,5 +1,6 @@
 pub mod aescbc;
 pub mod clap;
+pub mod pap;
 pub mod config;
 pub mod errors;
 pub mod hashis;
