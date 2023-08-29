@@ -683,7 +683,7 @@ dependencies = [
 
 [[package]]
 name = "obg"
-version = "0.5.2"
+version = "1.0.0"
 dependencies = [
  "aes",
  "chrono",
