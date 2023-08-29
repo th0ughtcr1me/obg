@@ -213,7 +213,7 @@ impl EncryptionEngine for Aes256CbcCodec {
                 result[index - 1].as_slice()
             };
             let last_block_pos = count - 1;
-            let block = &if index == last_block_pos {
+            let block = &if index == last_block_pos && block.len() < 16 {
                 // ensure padding in the last block to avoid side-effects
                 self.padding.pad(&block).to_vec()
             } else {
@@ -233,6 +233,7 @@ impl EncryptionEngine for Aes256CbcCodec {
         // split ciphertext into 16 blocks
         let chunks: Vec<Vec<u8>> = ciphertext.chunks(16).map(|c| c.to_vec()).collect();
         let count = chunks.len();
+        let last_block_pos = count - 1;
 
         for (index, block) in chunks.iter().enumerate() {
             let xor_block = if index == 0 {
@@ -240,7 +241,6 @@ impl EncryptionEngine for Aes256CbcCodec {
             } else {
                 chunks[index - 1].as_slice()
             };
-            let last_block_pos = count - 1;
             let block = self.decrypt_block(block, xor_block);
             result.push(if index == last_block_pos {
                 // ensure padding in the last block to avoid side-effects
