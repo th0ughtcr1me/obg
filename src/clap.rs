@@ -1,8 +1,8 @@
 // use clap_builder::derive::*;
 use crate::aescbc::Aes256Key;
 use crate::aescbc::DerivationScheme;
-use crate::hashis::CrcAlgo;
 use crate::errors::Error;
+use crate::hashis::CrcAlgo;
 // use atty::Stream;
 use clap::*;
 use std::io::{self, Read};
@@ -136,7 +136,8 @@ impl KeyDeriver for KeygenArgs {
 #[derive(Args, Debug)]
 #[group(multiple = false)]
 pub struct KeyOptions {
-    #[arg(short, long, required = false, env = "OBG_KEY_FILE")] //, overrides_with_all(["password", "salt"]))]
+    #[arg(short, long, required = false, env = "OBG_KEY_FILE")]
+    //, overrides_with_all(["password", "salt"]))]
     pub key_file: String,
     // #[arg(short, long, required=false)]
     // pub password: Vec<String>,

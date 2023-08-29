@@ -20,10 +20,10 @@ pub use crate::aescbc::pad::Ansix923;
 pub use crate::aescbc::pad::Padder128;
 pub use crate::aescbc::pad::Padding;
 pub use crate::aescbc::tp::{B128, B256};
+pub use crate::errors::Error;
 pub use crate::hashis::gcrc128;
 pub use crate::hashis::gcrc256;
-pub use crate::errors::Error;
-pub use crate::ioutils::{absolute_path, open_write, read_bytes_high_water_mark, read_bytes};
+pub use crate::ioutils::{absolute_path, open_write, read_bytes, read_bytes_high_water_mark};
 use hex;
 use rand::prelude::*;
 use serde_yaml;
@@ -263,10 +263,10 @@ impl EncryptionEngine for Aes256CbcCodec {
 #[cfg(test)]
 mod aes256cbc_tests {
     use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256};
-    use crate::aescbc::kd::DerivationScheme;
-    use crate::hashis::CrcAlgo;
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
+    use crate::aescbc::kd::DerivationScheme;
+    use crate::hashis::CrcAlgo;
     use crate::ioutils::read_bytes;
     use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
     use aes::Aes256;
@@ -741,7 +741,16 @@ mod aes256cbc_tests {
         // Background: I have a Aes256Key
         let password = "cypher where is tank?".to_string();
         let salt = "soul society".to_string();
-        let key = Aes256Key::derive([password].to_vec(), u64::MAX, [salt].to_vec(), u64::MAX, 0x35, DerivationScheme::Crc(CrcAlgo::GcRc256), false).expect("it appears that the key cannot be derived in this instant");
+        let key = Aes256Key::derive(
+            [password].to_vec(),
+            u64::MAX,
+            [salt].to_vec(),
+            u64::MAX,
+            0x35,
+            DerivationScheme::Crc(CrcAlgo::GcRc256),
+            false,
+        )
+        .expect("it appears that the key cannot be derived in this instant");
 
         // Background: There is a buffer whose length has a remainder with modulus 16
         let plaintext = read_bytes("tests/plaintext.jpg").unwrap();

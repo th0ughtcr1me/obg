@@ -1,9 +1,9 @@
-use chrono::{Utc, DateTime};
-use std::path::PathBuf;
-use std::fs::File;
 use crate::errors::Error;
 use crate::ioutils::absolute_path;
 use crate::ioutils::open_write;
+use chrono::{DateTime, Utc};
+use std::fs::File;
+use std::path::PathBuf;
 // use chrono::offset::TimeZone;
 
 pub fn default_base_path() -> PathBuf {
@@ -27,7 +27,7 @@ impl TempEmission {
     pub fn new_with_basepath(present: DateTime<Utc>, base_path: &PathBuf) -> TempEmission {
         TempEmission {
             present,
-            base_path: base_path.clone()
+            base_path: base_path.clone(),
         }
     }
     pub fn now() -> TempEmission {
@@ -51,8 +51,11 @@ impl TempEmission {
             Some(parent) => {
                 std::fs::create_dir_all(parent)?;
                 Ok(path.to_path_buf())
-            },
-            None => Err(Error::FileSystemError(format!("base path does not have an ancestor {}", path.display())))
+            }
+            None => Err(Error::FileSystemError(format!(
+                "base path does not have an ancestor {}",
+                path.display()
+            ))),
         }
     }
     pub fn papobg_8473776564_file(&self) -> Result<(File, PathBuf), Error> {

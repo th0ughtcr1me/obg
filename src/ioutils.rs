@@ -2,7 +2,7 @@ use crate::errors::Error;
 use shellexpand;
 
 use std::fs::{File, OpenOptions};
-use std::io::{Read};
+use std::io::Read;
 use std::path::Path;
 
 pub struct ReadFile {
@@ -21,10 +21,9 @@ pub fn absolutely_current_path() -> Result<String, Error> {
     let path = std::env::current_dir()?;
     match path.to_str() {
         Some(path) => Ok(absolute_path(path)),
-        None => Err(Error::FileSystemError(format!("invalid current path")))
+        None => Err(Error::FileSystemError(format!("invalid current path"))),
     }
 }
-
 
 pub fn resolved_path(src: &str) -> String {
     absolute_path(src).replace(&homedir(), "~")
@@ -46,8 +45,11 @@ pub fn get_or_create_parent_dir(path: &str) -> Result<String, Error> {
         Some(parent) => {
             std::fs::create_dir_all(parent)?;
             Ok(format!("{}", parent.display()))
-        },
-        None => Err(Error::FileSystemError(format!("base path does not have an ancestor {}", path.display())))
+        }
+        None => Err(Error::FileSystemError(format!(
+            "base path does not have an ancestor {}",
+            path.display()
+        ))),
     }
 }
 pub fn read_file(filename: &str) -> Result<ReadFile, Error> {
@@ -76,8 +78,5 @@ pub fn open_write(target: &str) -> Result<std::fs::File, Error> {
     let abspath = absolute_path(target);
     get_or_create_parent_dir(&abspath)?;
     // let parent =
-    Ok(OpenOptions::new()
-        .create(true)
-        .write(true)
-        .open(target)?)
+    Ok(OpenOptions::new().create(true).write(true).open(target)?)
 }

@@ -5,9 +5,9 @@ use obg::aescbc::EncryptionEngine;
 use obg::clap::{Cli, Command, Decrypt, Encrypt};
 use obg::clap::{KeyDeriver, KeyLoader};
 use obg::errors::Error;
-use obg::pap::{encrypt_file, decrypt_file};
 use obg::ioutils::absolute_path;
 use obg::ioutils::file_exists;
+use obg::pap::{decrypt_file, encrypt_file};
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
@@ -46,7 +46,6 @@ fn main() -> Result<(), Error> {
             Decrypt::File(args) => {
                 let key = args.load_key()?;
                 decrypt_file(key, args.input_file, args.output_file)?
-
             }
         },
     };

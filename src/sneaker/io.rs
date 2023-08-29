@@ -1,5 +1,5 @@
-use crate::sneaker::core;
 use crate::errors::Error;
+use crate::sneaker::core;
 use std::io::{Read, Seek};
 
 pub fn is_snuck<S: Read + Seek>(source: &mut S) -> Result<bool, Error> {
@@ -12,10 +12,10 @@ pub fn is_snuck<S: Read + Seek>(source: &mut S) -> Result<bool, Error> {
 
 #[cfg(test)]
 mod sneaker_tests {
-    use std::io::Cursor;
     use crate::sneaker::core;
     use crate::sneaker::io;
     use k9::assert_equal;
+    use std::io::Cursor;
 
     #[test]
     pub fn test_io() {
@@ -26,9 +26,6 @@ mod sneaker_tests {
 
         let result = io::is_snuck(&mut buf).unwrap();
 
-        assert_equal!(
-            result,
-            true
-        );
+        assert_equal!(result, true);
     }
 }

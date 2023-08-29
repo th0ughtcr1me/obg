@@ -2,14 +2,13 @@ use crate::aescbc::Aes256CbcCodec;
 use crate::aescbc::Aes256Key;
 use crate::aescbc::EncryptionEngine;
 use crate::errors::Error;
+use crate::ioutils::open_write;
 use crate::sneaker;
 use std::fs::File;
 use std::io::Read;
 use std::io::Seek;
-use std::io::Write;
 use std::io::SeekFrom;
-use crate::ioutils::open_write;
-
+use std::io::Write;
 
 pub fn decrypt_file(key: Aes256Key, input_file: String, output_file: String) -> Result<(), Error> {
     let codec = Aes256CbcCodec::new(key.skey(), key.siv());
@@ -56,13 +55,13 @@ pub fn encrypt_file(key: Aes256Key, input_file: String, output_file: String) -> 
 
 #[cfg(test)]
 mod pap_tests {
+    use crate::aescbc::cdc::Aes256Key;
     use crate::emit::TempEmission;
     use crate::errors::Error;
-    use crate::aescbc::cdc::Aes256Key;
     use crate::pap::{decrypt_file, encrypt_file};
-    
+
     use k9::assert_equal;
-    use std::fs::{File, read};
+    use std::fs::{read, File};
     use std::io::{Read, Write};
 
     pub fn random_bytes(breadth: usize) -> Result<Vec<u8>, Error> {
@@ -75,20 +74,20 @@ mod pap_tests {
     pub fn seq_bytes(breadth: usize) -> Result<Vec<u8>, Error> {
         let mut result = Vec::<u8>::new();
         result.resize(breadth, 0xa);
-        for x in 65..(65+breadth) {
+        for x in 65..(65 + breadth) {
             result[x - 65] = x as u8;
         }
         Ok(result)
     }
     fn get_key() -> Aes256Key {
         let key = [
-                0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d,
-                0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x65, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3,
-                0x09, 0x14, 0xdf, 0xf4,
+            0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d,
+            0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x65, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3,
+            0x09, 0x14, 0xdf, 0xf4,
         ];
         let iv = [
-                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
-                0x0e, 0x0f,
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+            0x0e, 0x0f,
         ];
         Aes256Key::new(key, iv)
     }
