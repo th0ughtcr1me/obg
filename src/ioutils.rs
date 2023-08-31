@@ -4,6 +4,7 @@ use shellexpand;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::path::Path;
+use std::os::unix::fs::OpenOptionsExt;
 
 pub struct ReadFile {
     pub bytes: Vec<u8>,
@@ -78,5 +79,5 @@ pub fn open_write(target: &str) -> Result<std::fs::File, Error> {
     let abspath = absolute_path(target);
     get_or_create_parent_dir(&abspath)?;
     // let parent =
-    Ok(OpenOptions::new().create(true).write(true).open(target)?)
+    Ok(OpenOptions::new().create(true).write(true).mode(0o600).open(target)?)
 }
