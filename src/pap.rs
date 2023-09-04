@@ -10,6 +10,41 @@ use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 
+/// Represents the stages of encryption/decryption principally during I/O
+pub enum IOStage {
+    InitCodec,
+    Read,
+    Accept,
+    Metadata,
+    Transcode,
+    Write,
+}
+impl From<IOStage> for String {
+    fn from(stage: IOStage) -> String {
+        String::from(match stage {
+            IOStage::InitCodec => "InitCodec",
+            IOStage::Read => "Read",
+            IOStage::Accept => "Accept",
+            IOStage::Metadata => "Metadata",
+            IOStage::Transcode => "Transcode",
+            IOStage::Write => "Write",
+        })
+    }
+}
+impl From<IOStage> for u8 {
+    fn from(stage: IOStage) -> u8 {
+        u8::from(match stage {
+            IOStage::InitCodec => 0b000001,
+            IOStage::Read =>      0b000010,
+            IOStage::Accept =>    0b000100,
+            IOStage::Metadata =>  0b001000,
+            IOStage::Transcode => 0b010000,
+            IOStage::Write =>     0b100000,
+        })
+    }
+}
+
+
 pub fn decrypt_file(key: Aes256Key, input_file: String, output_file: String) -> Result<(), Error> {
     let codec = Aes256CbcCodec::new(key.skey(), key.siv());
     let mut file = File::open(&input_file)?;

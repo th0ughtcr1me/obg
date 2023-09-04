@@ -26,7 +26,7 @@ encrypt/decrypt files.
 ### Generating an AES-256-CBC key out of an image file of "nothing"
 
 ```bash
-wget http://oceania.sh/nothing.png
+wget https://oceania.sh/nothing.png
 obg keygen --password ./nothing.png --salt "nihilism" --cycles 84000 -o key-made-of-nothing.yml
 ```
 
