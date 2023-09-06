@@ -69,6 +69,7 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
     version: String,
+    cycles: Option<u32>,
     key: String,
     iv: String,
 }
@@ -83,10 +84,11 @@ impl Aes256Key {
         siv.copy_from_slice(&self.iv.as_bytes()[..16]);
         siv
     }
-    pub fn new(key: B256, iv: B128) -> Aes256Key {
+    pub fn new(key: B256, iv: B128, cycles: u32) -> Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
+            cycles: Some(cycles),
             version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
         }
     }
@@ -126,7 +128,7 @@ impl Aes256Key {
         if shuffle_iv {
             iv.shuffle(&mut rng);
         }
-        Ok(Aes256Key::new(key, iv))
+        Ok(Aes256Key::new(key, iv, cycles))
     }
     pub fn load_from_file(filename: String) -> Result<Aes256Key, Error> {
         let location = absolute_path(&filename);

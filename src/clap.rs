@@ -37,7 +37,7 @@ pub trait KeyDeriver {
 
 #[derive(Args, Debug)]
 pub struct KeygenArgs {
-    #[arg(short, long, env = "OBG_KEY_FILE")]
+    #[arg(short, long)]
     pub output_file: String,
 
     #[arg(
@@ -260,11 +260,6 @@ impl EncryptTextParams {
         }
     }
 }
-// impl KeyDeriver for EncryptTextParams {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         self.key_opts.derive_key(shuffle_iv)
-//     }
-// }
 impl KeyLoader for EncryptTextParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -279,11 +274,6 @@ pub struct EncryptFileParams {
     #[command(flatten)]
     pub key_opts: KeyOptions,
 }
-// impl KeyDeriver for EncryptFileParams {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         self.key_opts.derive_key(shuffle_iv)
-//     }
-// }
 impl KeyLoader for EncryptFileParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -315,11 +305,6 @@ impl DecryptTextParams {
         }
     }
 }
-// impl KeyDeriver for DecryptTextParams {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         self.key_opts.derive_key(shuffle_iv)
-//     }
-// }
 impl KeyLoader for DecryptTextParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
@@ -334,11 +319,6 @@ pub struct DecryptFileParams {
     #[command(flatten)]
     pub key_opts: KeyOptions,
 }
-// impl KeyDeriver for DecryptFileParams {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         self.key_opts.derive_key(shuffle_iv)
-//     }
-// }
 impl KeyLoader for DecryptFileParams {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         self.key_opts.load_key()
