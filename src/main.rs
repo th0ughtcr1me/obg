@@ -16,8 +16,9 @@ fn main() -> Result<(), Error> {
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;
-            if file_exists(&key_file) {
-                panic!("{} already exists", key_file);
+            if file_exists(&key_file) && !args.force {
+                eprintln!("{} already exists, you may pass `-f' to force overwrite", key_file);
+                std::process::exit(0xdc);
             }
             key.save_to_file(key_file.clone())?;
             eprintln!("saved {}", key_file);

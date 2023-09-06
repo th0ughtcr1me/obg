@@ -40,6 +40,9 @@ pub struct KeygenArgs {
     #[arg(short, long)]
     pub output_file: String,
 
+    #[arg(short, long)]
+    pub force: bool,
+
     #[arg(
         short,
         long,

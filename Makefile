@@ -57,19 +57,21 @@ run build test: check
 
 $(OBG_KEY0):
 	rm -f $@
-	$(OBG_RUN) keygen -p "konichiwa" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@
+	$(OBG_RUN) keygen -p "awihcinok" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@
+	$(OBG_RUN) keygen -p "konichiwa" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@ -f
 
 $(OBG_KEY1):
 	rm -f $@
 	$(OBG_RUN) keygen -p tests/key.rst -s tests/iv.dat -o $@
+	$(OBG_RUN) keygen -fp tests/key.rst -s tests/iv.dat -o $@
 
 $(OBG_KEY2):
 	rm -f $@
 	dd if=/dev/random of="$$(pwd)/0password72.bin" bs=9 count=8
 	dd if=/dev/random of="$$(pwd)/0salt.bin" bs=5 count=8
-	obg keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
+	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
+	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@ --force
 	# obg keygen --password /dev/random --password-hwm 137 --salt "/dev/random" --salt-hwm 100 --randomize-iv --cycles 42 -o $@
-
 	rm -f "$$(pwd)/salt.bin" "$$(pwd)/password72.bin"
 
 e2e: cleanx
