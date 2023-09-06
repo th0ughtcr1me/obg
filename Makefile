@@ -1,5 +1,6 @@
 INSTALL_PATH			:=$(HOME)/usr/libexec/
 OBG_NAME			:=obg
+OBG_VERSION			:=$(shell cargo run -- --version | awk '{ print $$NF }')
 OBG_DEBUG_EXEC			:=target/debug/$(OBG_NAME)
 OBG_RELEASE_EXEC		:=target/release/$(OBG_NAME)
 OBG_EXEC			:=$(OBG_DEBUG_EXEC)
@@ -28,9 +29,11 @@ $(OBG_DEBUG_EXEC): $(INSTALL_PATH)
 	cargo build
 
 release: check fix | $(OBG_RELEASE_EXEC)
+	install $(OBG_RELEASE_EXEC) $(INSTALL_PATH)/$(OBG_NAME)-$(OBG_VERSION)
 	install $(OBG_RELEASE_EXEC) $(INSTALL_PATH)
 
 debug: check fix | $(OBG_DEBUG_EXEC)
+	install $(OBG_DEBUG_EXEC) $(INSTALL_PATH)/$(OBG_NAME)-$(OBG_VERSION)
 	install $(OBG_DEBUG_EXEC) $(INSTALL_PATH)
 
 clean: cls
