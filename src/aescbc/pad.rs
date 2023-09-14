@@ -6,7 +6,7 @@ pub trait Padder128 {
     fn padbyte(&self) -> u8;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Padding {
     Ansix923(Ansix923),
 }
@@ -28,7 +28,7 @@ impl Padder128 for Padding {
         }
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ansix923 {
     rc: u8,
 }

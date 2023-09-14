@@ -66,7 +66,7 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
     a.into_iter().zip(b.iter()).map(|(a, b)| a ^ b).collect()
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
     version: String,
     cycles: Option<u32>,
