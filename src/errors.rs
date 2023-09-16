@@ -1,9 +1,11 @@
 use hex::FromHexError;
 use std::string::FromUtf8Error;
 
+
 #[derive(Debug)]
 pub enum Error {
     IOError(std::io::Error),
+    TemplateError(indicatif::style::TemplateError),
     FileSystemError(String),
     EncryptionError(EncryptionError),
     DecryptionError(DecryptionError),
@@ -23,6 +25,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Error::IOError(e) => write!(f, "IOError: {}", e),
+            Error::TemplateError(e) => write!(f, "IOError: {}", e),
             Error::EncryptionError(e) => write!(f, "EncryptionError: {}", e),
             Error::DecryptionError(e) => write!(f, "DecryptionError: {}", e),
             Error::FileSystemError(e) => write!(f, "FileSystemError: {}", e),
@@ -55,6 +58,11 @@ impl From<url::ParseError> for Error {
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Error::IOError(e)
+    }
+}
+impl From<indicatif::style::TemplateError> for Error {
+    fn from(e: indicatif::style::TemplateError) -> Self {
+        Error::TemplateError(e)
     }
 }
 

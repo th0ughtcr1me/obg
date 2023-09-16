@@ -6,6 +6,8 @@ use crate::hashis::CrcAlgo;
 // use atty::Stream;
 use clap::*;
 use std::io::{self, Read};
+use rand::Rng;
+use indicatif::{ProgressBar, ProgressStyle};
 // use std::path::Path;
 
 #[derive(Parser, Debug)]
@@ -80,12 +82,15 @@ pub struct KeygenArgs {
     #[arg(long, default_value_t = DerivationScheme::Crc(CrcAlgo::GcRc256))]
     pub salt_derivation_scheme: DerivationScheme,
 
+    #[arg(short, long)]
+    pub quiet: bool,
+
     #[arg(
         short,
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_CYCLES",
-        default_value_t = 1337
+        default_value_t = 84000
     )]
     pub cycles: u32,
 
@@ -96,38 +101,89 @@ pub struct KeygenArgs {
     )]
     pub shuffle_iv: bool,
 
+    #[arg(
+        short = 'R',
+        long = "random",
+        help = "generates key and iv with (pseudo-)random data rather in lieu of derivation"
+    )]
+    pub random: bool,
+
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
 }
 
 impl KeyDeriver for KeygenArgs {
     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-        if self.password.len() == 0 {
+        let password = if self.random {
+            let mut rng = rand::thread_rng();
+            let mut arr = Vec::<u8>::new();
+            arr.resize(self.password_hwm as usize, 0);
+
+            if !self.quiet {
+                let pb = ProgressBar::new(self.cycles as u64).with_message("Generating Password").with_style(ProgressStyle::with_template("{msg} [{elapsed_precise}] {bar:71.220}")?.progress_chars("★ ✩"));
+                for r in 0..self.cycles {
+                    pb.inc(r.into());
+                    rng.fill(&mut arr[..]);
+                }
+                pb.finish();
+            } else {
+                for _ in 0..self.cycles {
+                    rng.fill(&mut arr[..]);
+                }
+            }
+
+            vec![hex::encode(arr)]
+        } else {self.password.clone()};
+        let salt = if self.random {
+            let mut rng = rand::thread_rng();
+            let mut arr = Vec::<u8>::new();
+            arr.resize(self.salt_hwm as usize, 0);
+            if !self.quiet {
+                let pb = ProgressBar::new(self.cycles as u64).with_message("Factoring Salt").with_style(ProgressStyle::with_template("{msg}      [{elapsed_precise}] {bar:71.237}")?);
+                for r in 0..self.cycles {
+                    pb.inc(r.into());
+                    rng.fill(&mut arr[..]);
+                }
+                pb.finish();
+            } else {
+                for _ in 0..self.cycles {
+                    rng.fill(&mut arr[..]);
+                }
+            }
+            vec![hex::encode(arr)]
+        } else {
+            self.salt.clone()
+        };
+
+        if password.len() == 0 {
             // let mut e = clap::error::Error::new(ErrorKind::MissingRequiredArgument);
             // e.insert(clap::error::ContextKind::Custom, clap::error::ContextValue::String("at least one password is required".to_string()));
             // return Err(e.into());
-            panic!("at least one password is required");
+            panic!("provide password or pass the --random flag");
         } else {
-            for (index, sec) in self.password.iter().enumerate() {
+            for (index, sec) in password.iter().enumerate() {
                 if sec.len() == 0 {
                     panic!("password at position {} is empty", index);
                 }
             }
         }
-        if self.salt.len() == 0 {
-            panic!("at least one salt is required");
+        if salt.len() == 0 {
+            panic!("provide salt or pass the --random flag");
         } else {
-            for (index, st) in self.salt.iter().enumerate() {
+            for (index, st) in salt.iter().enumerate() {
                 if st.len() == 0 {
                     panic!("salt at position {} is empty", index);
                 }
             }
         }
-
+        if !self.quiet {
+            let pb = ProgressBar::new(2).with_message("More Computation").with_style(ProgressStyle::with_template("{msg}    [{elapsed_precise}] {bar:71.255}")?);
+            pb.inc(1);
+        }
         Aes256Key::derive(
-            self.password.clone(),
+            password.clone(),
             self.password_hwm,
-            self.salt.clone(),
+            salt.clone(),
             self.salt_hwm,
             self.cycles,
             self.salt_derivation_scheme.clone(),

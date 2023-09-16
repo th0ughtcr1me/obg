@@ -1,5 +1,7 @@
 use clap_builder::Parser;
 use hex;
+use console;
+
 use obg::aescbc::Aes256CbcCodec;
 use obg::aescbc::EncryptionEngine;
 use obg::clap::{Cli, Command, Decrypt, Encrypt};
@@ -11,6 +13,14 @@ use obg::pap::{decrypt_file, encrypt_file};
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
+    std::panic::set_hook(Box::new(|panic_info| {
+    if let Some(y) = panic_info.payload().downcast_ref::<&str>() {
+        eprintln!("{} {}", console::style("Error:").color256(247), console::style(format!("{y}")).color256(253));
+    } else {
+        eprintln!("{}", console::style("unknown error").red());
+    }
+    }));
+
     let mate = Cli::parse();
     match mate.command {
         Command::Keygen(args) => {
