@@ -2,7 +2,8 @@
 use crate::aescbc::Aes256Key;
 use crate::aescbc::DerivationScheme;
 use crate::errors::Error;
-use crate::hashis::CrcAlgo;
+// use crate::hashis::CrcAlgo;
+use crate::aescbc::config::Pbkdf2HashingAlgo;
 // use atty::Stream;
 use clap::*;
 use std::io::{self, Read};
@@ -79,7 +80,7 @@ pub struct KeygenArgs {
     )]
     pub salt_hwm: u64,
 
-    #[arg(long, default_value_t = DerivationScheme::Crc(CrcAlgo::GcRc256))]
+    #[arg(short = 'D', long, env = "OBG_DS", default_value_t = DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_384))]
     pub salt_derivation_scheme: DerivationScheme,
 
     #[arg(short, long)]
@@ -90,7 +91,7 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_CYCLES",
-        default_value_t = 84000
+        default_value_t = 8455637
     )]
     pub cycles: u32,
 
@@ -386,10 +387,10 @@ impl KeyLoader for DecryptFileParams {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    #[command()]
+    #[command(about = "generates key")]
     Keygen(KeygenArgs),
-    #[command(subcommand)]
+    #[command(subcommand, about = "encrypts file or input plaintext using a pre-existing key generated via the keygen command")]
     Encrypt(Encrypt),
-    #[command(subcommand)]
+    #[command(subcommand, about = "decrypts file or input ciphertext")]
     Decrypt(Decrypt),
 }

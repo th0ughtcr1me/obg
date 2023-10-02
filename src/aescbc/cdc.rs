@@ -29,7 +29,7 @@ use rand::prelude::*;
 use serde_yaml;
 use std::io::Write;
 use std::path::Path;
-
+use chrono::{DateTime,Utc};
 use aes::cipher::{
     // generic_array::{GenericArray, ArrayLength, typenum::U8};
     generic_array::GenericArray,
@@ -67,12 +67,41 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct FsMetadata {
+    // based on https://github.com/openbsd/src/blob/1835b44f319c9f17642bb957cc6602d2762cc3ae/sys/sys/stat.h#L45-L75
+    mode: u8,
+    birthat: DateTime<Utc>,
+    accessat: DateTime<Utc>,
+    changeat: DateTime<Utc>,
+    modifyat: DateTime<Utc>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct SourceMeta {
+    filename: Option<String>,
+    stat: Option<FsMetadata>,
+    crc32: Option<String>,
+    md5sum: Option<String>,
+    sha1sum: Option<String>,
+    sha224sum: Option<String>,
+    sha256sum: Option<String>,
+    sha384sum: Option<String>,
+    sha512sum: Option<String>,
+    sha3_224sum: Option<String>,
+    sha3_256sum: Option<String>,
+    sha3_384sum: Option<String>,
+    sha3_512sum: Option<String>,
+    sha3sum: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
     version: String,
     cycles: Option<u32>,
     key: String,
     iv: String,
+    sourcemeta: Option<SourceMeta>,
 }
+// signs https://github.com/openbsd/src/blob/1835b44f319c9f17642bb957cc6602d2762cc3ae/sys/sys/signal.h#L51-L99
 impl Aes256Key {
     pub fn skey(&self) -> B256 {
         let mut skey: B256 = [0x0; 32];
@@ -84,11 +113,26 @@ impl Aes256Key {
         siv.copy_from_slice(&self.iv.as_bytes()[..16]);
         siv
     }
+    pub fn with_sourcemeta(&self, meta: SourceMeta) -> Aes256Key {
+        let mut result = self.clone();
+        result.sourcemeta = Some(meta);
+        result
+    }
     pub fn new(key: B256, iv: B128, cycles: u32) -> Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
             cycles: Some(cycles),
+            sourcemeta: None,
+            version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
+        }
+    }
+    pub fn new_with_meta(key: B256, iv: B128, cycles: u32, meta: SourceMeta) -> Aes256Key {
+        Aes256Key {
+            key: hex::encode(key),
+            iv: hex::encode(iv),
+            cycles: Some(cycles),
+            sourcemeta: Some(meta),
             version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
         }
     }

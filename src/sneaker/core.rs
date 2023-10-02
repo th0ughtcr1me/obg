@@ -1,13 +1,21 @@
+pub const STACK_WIDTH: usize = 4;
 pub const MAGIC_WIDTH: usize = 33;
 
+
+pub fn stack() -> Vec<u8> {
+    vec![
+        0x00, 0x00, 0x02, 0x00,
+    ]
+}
+
 pub fn magic_id() -> Vec<u8> {
-    [
+    vec![
         0x00, 0x00, 0x02, 0x00, 0x13, 0x01, 0x02, 0x00, 0xc4, 0x47, 0x37, 0x31, 0x52, 0x4f, 0x00,
         0x57, 0x4d, 0x00, 0x55, 0x41, 0x00, 0x45, 0x55, 0x00, 0x44, 0x34, 0x56, 0x31, 0x13, 0x2b,
         0x7c, 0x21, 0x2b, // 2b or not 2b ~?~
     ]
-    .to_vec()
 }
+
 
 #[cfg(test)]
 mod sneaker_tests {
@@ -18,10 +26,14 @@ mod sneaker_tests {
 
     #[test]
     pub fn test_core() {
-        let result = core::magic_id();
+        let zid = core::magic_id();
+        let pfx = core::stack();
 
-        assert_equal!(result.len(), core::MAGIC_WIDTH);
-        assert_equal!(result[5], 0x01);
-        assert_equal!(result[4], 0x13);
+        assert_equal!(zid.len(), core::MAGIC_WIDTH);
+        assert_equal!(zid[5], 0x01);
+        assert_equal!(zid[4], 0x13);
+
+        assert_equal!(pfx.len(), 4);
+        assert_equal!(pfx, vec![0x00, 0x00, 0x02, 0x00]);
     }
 }
