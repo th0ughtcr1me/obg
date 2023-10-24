@@ -91,7 +91,8 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_CYCLES",
-        default_value_t = 8455637
+        default_value_t = 5477
+        // Default_Value = 8455637
     )]
     pub cycles: u32,
 
@@ -194,7 +195,7 @@ impl KeyDeriver for KeygenArgs {
 }
 
 #[derive(Args, Debug)]
-#[group(multiple = false)]
+#[group(multiple = true)]
 pub struct KeyOptions {
     #[arg(short, long, required = false, env = "OBG_KEY_FILE")]
     //, overrides_with_all(["password", "salt"]))]
@@ -213,6 +214,21 @@ pub struct KeyOptions {
     pub shuffle_iv: bool,
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
+
+    #[arg(short, long, help = "validate key integrity")]
+    pub strict: bool,
+
+    #[arg(short = 'o', long, help = "key offset")]
+    pub key_offset: Option<usize>,
+
+    #[arg(short = 'O', long, help = "salt offset")]
+    pub salt_offset: Option<usize>,
+
+    #[arg(short = 'b', long, help = "blob offset")]
+    pub blob_offset: Option<usize>,
+
+    #[arg(short = 'm', long = "mo", help = "middle-out offset")]
+    pub mo_offset: bool,
 }
 // impl KeyDeriver for KeyOptions {
 //     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
@@ -249,7 +265,7 @@ impl KeyLoader for KeyOptions {
             0 => Err(Error::InvalidCliArg(format!(
                 "--key-file is required when --password is not provided"
             ))),
-            _ => Aes256Key::load_from_file(self.key_file.clone()),
+            _ => Aes256Key::load_from_file(self.key_file.clone(), self.strict, self.key_offset, self.salt_offset, self.blob_offset, self.mo_offset),
         }
     }
 }
@@ -384,6 +400,10 @@ impl KeyLoader for DecryptFileParams {
         self.key_opts.load_key()
     }
 }
+#[derive(Args, Debug)]
+pub struct IdOps {
+    pub filenames: Vec<String>,
+}
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
@@ -393,4 +413,6 @@ pub enum Command {
     Encrypt(Encrypt),
     #[command(subcommand, about = "decrypts file or input ciphertext")]
     Decrypt(Decrypt),
+    #[command(about = "ascertain file's encrypted")]
+    Id(IdOps),
 }

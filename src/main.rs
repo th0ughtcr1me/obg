@@ -10,6 +10,8 @@ use obg::errors::Error;
 use obg::ioutils::absolute_path;
 use obg::ioutils::file_exists;
 use obg::pap::{decrypt_file, encrypt_file};
+use obg::sneaker::io::{xstack, is_snuck};
+use std::fs::File;
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
@@ -23,6 +25,22 @@ fn main() -> Result<(), Error> {
 
     let mate = Cli::parse();
     match mate.command {
+        Command::Id(args) => {
+            for reference in args.filenames.iter() {
+                let path = absolute_path(reference);
+                let mut file = File::open(&path)?;
+                if xstack(&mut file)? {
+                    eprintln!("\x1b[1;38;5;148mbgn\t\x1b[1;38;5;118mY\x1b[0m\t{}", &path);
+                } else {
+                    eprintln!("\x1b[1;38;5;148mbgn\t\x1b[1;38;5;160mN\x1b[0m\t{}", &path);
+                }
+                if is_snuck(&mut file)? {
+                    eprintln!("\x1b[1;38;5;184mmgx\t\x1b[1;38;5;118mY\x1b[0m\t{}", &path);
+                } else {
+                    eprintln!("\x1b[1;38;5;184mmgx\t\x1b[1;38;5;160mN\x1b[0m\t{}", &path);
+                }
+            }
+        }
         Command::Keygen(args) => {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;

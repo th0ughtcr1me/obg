@@ -4,7 +4,7 @@ use std::io::{Read, Seek};
 
 pub fn xstack<S: Read + Seek>(source: &mut S) -> Result<bool, Error> {
     let mut start: Vec<u8> = Vec::new();
-    start.resize(core::STACK_WIDTH, 0x37);
+    start.resize(core::STACK_WIDTH, 0x4);
     source.rewind()?;
     source.read_exact(&mut start)?;
     Ok(start == core::stack())

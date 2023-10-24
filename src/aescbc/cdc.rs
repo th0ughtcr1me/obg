@@ -15,6 +15,7 @@ use obg::aescbc::cdc::Aes256CbcCodec;
 
 pub use crate::aescbc::kd::pbkdf2_sha384_128bits;
 pub use crate::aescbc::kd::pbkdf2_sha384_256bits;
+pub use crate::aescbc::kd::pbkdf2_sha512;
 pub use crate::aescbc::kd::DerivationScheme;
 pub use crate::aescbc::pad::Ansix923;
 pub use crate::aescbc::pad::Padder128;
@@ -26,7 +27,7 @@ pub use crate::hashis::gcrc256;
 pub use crate::ioutils::{absolute_path, open_write, read_bytes, read_bytes_high_water_mark};
 use hex;
 use rand::prelude::*;
-use serde_yaml;
+
 use std::io::Write;
 use std::path::Path;
 use chrono::{DateTime,Utc};
@@ -99,9 +100,22 @@ pub struct Aes256Key {
     cycles: Option<u32>,
     key: String,
     iv: String,
+    blob: String,
     sourcemeta: Option<SourceMeta>,
 }
+
+// MaGic PreFix
+const AESMGPF: [u8;8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
+
+fn getcurrentversion() -> String{
+    format!("obg-v{}", env!("CARGO_PKG_VERSION"))
+}
+
+pub fn match_prefix(magicpfx: &[u8]) -> bool {
+    magicpfx.to_vec() == AESMGPF.to_vec()
+}
 // signs https://github.com/openbsd/src/blob/1835b44f319c9f17642bb957cc6602d2762cc3ae/sys/sys/signal.h#L51-L99
+
 impl Aes256Key {
     pub fn skey(&self) -> B256 {
         let mut skey: B256 = [0x0; 32];
@@ -118,22 +132,24 @@ impl Aes256Key {
         result.sourcemeta = Some(meta);
         result
     }
-    pub fn new(key: B256, iv: B128, cycles: u32) -> Aes256Key {
+    pub fn new(key: B256, iv: B128, blob: &[u8], cycles: u32) -> Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
+            blob: hex::encode(blob),
             cycles: Some(cycles),
             sourcemeta: None,
-            version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
+            version: getcurrentversion(),
         }
     }
-    pub fn new_with_meta(key: B256, iv: B128, cycles: u32, meta: SourceMeta) -> Aes256Key {
+    pub fn new_with_meta(key: B256, iv: B128, blob: &[u8], cycles: u32, meta: SourceMeta) -> Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
+            blob: hex::encode(blob),
             cycles: Some(cycles),
             sourcemeta: Some(meta),
-            version: format!("obg-v{}", env!("CARGO_PKG_VERSION")),
+            version: getcurrentversion()
         }
     }
     pub fn derive(
@@ -166,32 +182,85 @@ impl Aes256Key {
         }
 
         let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
+        let blob = pbkdf2_sha512(&password, &salt, cycles, 72);
         let dv = salt_derivation_scheme.derive(&salt, &password, cycles);
         let mut iv = [0; 16];
         iv.copy_from_slice(&dv[..16]);
         if shuffle_iv {
             iv.shuffle(&mut rng);
         }
-        Ok(Aes256Key::new(key, iv, cycles))
+        Ok(Aes256Key::new(key, iv, &blob, cycles))
     }
-    pub fn load_from_file(filename: String) -> Result<Aes256Key, Error> {
-        let location = absolute_path(&filename);
-        let path = Path::new(&location);
-        if path.exists() {
-            let bytes = read_bytes(&location)?;
-            let key: Aes256Key = serde_yaml::from_slice(&bytes)?;
-            Ok(key)
-        } else {
-            Err(Error::FileSystemError(format!(
-                "{} does not exist",
-                location
-            )))
-        }
-    }
-    pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
-        let mut file = open_write(&filename).unwrap();
+    pub fn save_to_yaml_file(&self, filename: String) -> Result<(), Error> {
+        let mut file = open_write(&filename)?;
         let yaml = serde_yaml::to_string(self)?;
         Ok(file.write_all(yaml.as_bytes())?)
+    }
+    pub fn load_from_yaml_file(filename: String) -> Result<Aes256Key, Error> {
+        let bytes = read_bytes(&filename)?;
+        let key: Aes256Key = serde_yaml::from_slice(&bytes)?;
+        Ok(key)
+    }
+    pub fn load_from_file(filename: String, strict: bool, key_offset: Option<usize>, salt_offset: Option<usize>, blob_offset: Option<usize>, moo: bool) -> Result<Aes256Key, Error> {
+        let bytes = read_bytes(&filename)?;
+        if bytes.len() < 110 {
+            return Err(Error::FileSystemError(format!(
+                "{} is too small",
+                filename
+            )));
+        }
+        let mut bytes = bytes.to_vec();
+
+        if strict {
+            let mag1cpfx = bytes.drain(0..8).collect::<Vec<u8>>();
+            assert!(match_prefix(&mag1cpfx));
+        }
+
+
+        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-8-match key_offset {Some(o)=>o, None => 0};
+        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let iv = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-16-match salt_offset {Some(o)=>o, None => 0};
+        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let key = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-72-match blob_offset {Some(o)=>o, None => 0};
+        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let blob = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+
+        Ok(Aes256Key {
+            version: getcurrentversion(),
+            key: hex::encode(key),
+            blob: hex::encode(blob),
+            iv: hex::encode(iv),
+            cycles: None,
+            sourcemeta: None,
+        })
+    }
+    pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
+        let mut file = open_write(&filename)?;
+        file.write_all(&AESMGPF.to_vec())?;
+        file.write_all(filename.as_str().as_bytes())?;
+        file.write_all(&[0x00,0x00,0x00,0x00])?;
+        let mut rng = thread_rng();
+        let mut mods: Vec<usize> = (237..1283).collect();
+        mods.shuffle(&mut rng);
+        let len = mods[0];
+        let mut buf = Vec::<u8>::new();
+        buf.resize(len, 0xa);
+        rng.fill_bytes(&mut buf);
+        file.write_all(&buf)?;
+        file.write_all(&[0x00, 0x00, 0x00, 0x10,    // 2.
+                         0x00, 0x00, 0x00, 0x00,    // 0.
+                         0x00, 0x00, 0x00, 0x00])?; // 0
+        file.write_all(&hex::decode("0105161050110a12")?)?;
+        file.write_all(&[0x26, 0x7b, 0xfe, 0x0e])?;
+        file.write_all(&hex::decode(&format!("{:016x}", match self.cycles {
+            Some(c) => c,
+            None => 0,
+        }))?)?;
+        file.write_all(&self.skey())?;
+        file.write_all(&self.siv())?;
+        Ok(())
     }
 }
 
