@@ -22,3 +22,9 @@ pub mod xor;
 
 pub use cdc::*;
 pub use kd::*;
+pub use config::*;
+pub use gb::*;
+pub use kd::*;
+pub use pad::*;
+pub use rng::*;
+pub use tp::*;

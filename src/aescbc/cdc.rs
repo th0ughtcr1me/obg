@@ -100,8 +100,8 @@ pub struct Aes256Key {
     cycles: Option<u32>,
     key: String,
     iv: String,
-    blob: String,
     sourcemeta: Option<SourceMeta>,
+    pub blob: String,
 }
 
 // MaGic PreFix
@@ -142,6 +142,7 @@ impl Aes256Key {
             version: getcurrentversion(),
         }
     }
+
     pub fn new_with_meta(
         key: B256,
         iv: B128,
@@ -167,7 +168,6 @@ impl Aes256Key {
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
     ) -> Result<Aes256Key, Error> {
-        let mut rng = rand::thread_rng();
 
         let mut password = Vec::<u8>::new();
         for sec in passwords {
@@ -186,9 +186,13 @@ impl Aes256Key {
                 st.as_str().as_bytes().to_vec()
             });
         }
+        let mut rng = thread_rng();
+        let mut mods: Vec<usize> = (237..1283).collect();
+        mods.shuffle(&mut rng);
+        let len = mods[0];
 
         let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
-        let blob = pbkdf2_sha512(&password, &salt, cycles, 72);
+        let blob = pbkdf2_sha512(&password, &salt, cycles, len);
         let dv = salt_derivation_scheme.derive(&salt, &password, cycles);
         let mut iv = [0; 16];
         iv.copy_from_slice(&dv[..16]);

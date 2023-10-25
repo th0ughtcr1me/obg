@@ -1,4 +1,5 @@
 // use hex::encode;
+pub type B96 = [u8; 12];
 pub type B128 = [u8; 16];
 pub type B256 = [u8; 32];
 
