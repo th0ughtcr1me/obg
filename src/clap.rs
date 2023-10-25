@@ -2,12 +2,13 @@
 use crate::aescbc::Aes256Key;
 use crate::aescbc::DerivationScheme;
 use crate::errors::Error;
-use crate::hashis::CrcAlgo;
+// use crate::hashis::CrcAlgo;
+use crate::aescbc::config::Pbkdf2HashingAlgo;
 // use atty::Stream;
 use clap::*;
-use std::io::{self, Read};
-use rand::Rng;
 use indicatif::{ProgressBar, ProgressStyle};
+use rand::Rng;
+use std::io::{self, Read};
 // use std::path::Path;
 
 #[derive(Parser, Debug)]
@@ -79,7 +80,7 @@ pub struct KeygenArgs {
     )]
     pub salt_hwm: u64,
 
-    #[arg(long, default_value_t = DerivationScheme::Crc(CrcAlgo::GcRc256))]
+    #[arg(short = 'D', long, env = "OBG_DS", default_value_t = DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_384))]
     pub salt_derivation_scheme: DerivationScheme,
 
     #[arg(short, long)]
@@ -90,7 +91,8 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_CYCLES",
-        default_value_t = 84000
+        default_value_t = 5477
+        // Default_Value = 8455637
     )]
     pub cycles: u32,
 
@@ -120,7 +122,12 @@ impl KeyDeriver for KeygenArgs {
             arr.resize(self.password_hwm as usize, 0);
 
             if !self.quiet {
-                let pb = ProgressBar::new(self.cycles as u64).with_message("Generating Password").with_style(ProgressStyle::with_template("{msg} [{elapsed_precise}] {bar:71.220}")?.progress_chars("★ ✩"));
+                let pb = ProgressBar::new(self.cycles as u64)
+                    .with_message("Generating Password")
+                    .with_style(
+                        ProgressStyle::with_template("{msg} [{elapsed_precise}] {bar:71.220}")?
+                            .progress_chars("★ ✩"),
+                    );
                 for r in 0..self.cycles {
                     pb.inc(r.into());
                     rng.fill(&mut arr[..]);
@@ -133,13 +140,19 @@ impl KeyDeriver for KeygenArgs {
             }
 
             vec![hex::encode(arr)]
-        } else {self.password.clone()};
+        } else {
+            self.password.clone()
+        };
         let salt = if self.random {
             let mut rng = rand::thread_rng();
             let mut arr = Vec::<u8>::new();
             arr.resize(self.salt_hwm as usize, 0);
             if !self.quiet {
-                let pb = ProgressBar::new(self.cycles as u64).with_message("Factoring Salt").with_style(ProgressStyle::with_template("{msg}      [{elapsed_precise}] {bar:71.237}")?);
+                let pb = ProgressBar::new(self.cycles as u64)
+                    .with_message("Factoring Salt")
+                    .with_style(ProgressStyle::with_template(
+                        "{msg}      [{elapsed_precise}] {bar:71.237}",
+                    )?);
                 for r in 0..self.cycles {
                     pb.inc(r.into());
                     rng.fill(&mut arr[..]);
@@ -177,7 +190,11 @@ impl KeyDeriver for KeygenArgs {
             }
         }
         if !self.quiet {
-            let pb = ProgressBar::new(2).with_message("More Computation").with_style(ProgressStyle::with_template("{msg}    [{elapsed_precise}] {bar:71.255}")?);
+            let pb = ProgressBar::new(2)
+                .with_message("More Computation")
+                .with_style(ProgressStyle::with_template(
+                    "{msg}    [{elapsed_precise}] {bar:71.255}",
+                )?);
             pb.inc(1);
         }
         Aes256Key::derive(
@@ -193,7 +210,7 @@ impl KeyDeriver for KeygenArgs {
 }
 
 #[derive(Args, Debug)]
-#[group(multiple = false)]
+#[group(multiple = true)]
 pub struct KeyOptions {
     #[arg(short, long, required = false, env = "OBG_KEY_FILE")]
     //, overrides_with_all(["password", "salt"]))]
@@ -212,6 +229,21 @@ pub struct KeyOptions {
     pub shuffle_iv: bool,
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
+
+    #[arg(short, long, help = "validate key integrity")]
+    pub strict: bool,
+
+    #[arg(short = 'o', long, help = "key offset")]
+    pub key_offset: Option<usize>,
+
+    #[arg(short = 'O', long, help = "salt offset")]
+    pub salt_offset: Option<usize>,
+
+    #[arg(short = 'b', long, help = "blob offset")]
+    pub blob_offset: Option<usize>,
+
+    #[arg(short = 'm', long = "mo", help = "middle-out offset")]
+    pub mo_offset: bool,
 }
 // impl KeyDeriver for KeyOptions {
 //     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
@@ -248,7 +280,14 @@ impl KeyLoader for KeyOptions {
             0 => Err(Error::InvalidCliArg(format!(
                 "--key-file is required when --password is not provided"
             ))),
-            _ => Aes256Key::load_from_file(self.key_file.clone()),
+            _ => Aes256Key::load_from_file(
+                self.key_file.clone(),
+                self.strict,
+                self.key_offset,
+                self.salt_offset,
+                self.blob_offset,
+                self.mo_offset,
+            ),
         }
     }
 }
@@ -383,13 +422,22 @@ impl KeyLoader for DecryptFileParams {
         self.key_opts.load_key()
     }
 }
+#[derive(Args, Debug)]
+pub struct IdOps {
+    pub filenames: Vec<String>,
+}
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    #[command()]
+    #[command(about = "generates key")]
     Keygen(KeygenArgs),
-    #[command(subcommand)]
+    #[command(
+        subcommand,
+        about = "encrypts file or input plaintext using a pre-existing key generated via the keygen command"
+    )]
     Encrypt(Encrypt),
-    #[command(subcommand)]
+    #[command(subcommand, about = "decrypts file or input ciphertext")]
     Decrypt(Decrypt),
+    #[command(about = "ascertain file's encrypted")]
+    Id(IdOps),
 }

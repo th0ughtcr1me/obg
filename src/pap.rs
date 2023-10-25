@@ -35,15 +35,14 @@ impl From<IOStage> for u8 {
     fn from(stage: IOStage) -> u8 {
         u8::from(match stage {
             IOStage::InitCodec => 0b000001,
-            IOStage::Read =>      0b000010,
-            IOStage::Accept =>    0b000100,
-            IOStage::Metadata =>  0b001000,
+            IOStage::Read => 0b000010,
+            IOStage::Accept => 0b000100,
+            IOStage::Metadata => 0b001000,
             IOStage::Transcode => 0b010000,
-            IOStage::Write =>     0b100000,
+            IOStage::Write => 0b100000,
         })
     }
 }
-
 
 pub fn decrypt_file(key: Aes256Key, input_file: String, output_file: String) -> Result<(), Error> {
     let codec = Aes256CbcCodec::new(key.skey(), key.siv());
@@ -124,7 +123,12 @@ mod pap_tests {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
             0x0e, 0x0f,
         ];
-        Aes256Key::new(key, iv, 0)
+        let blob = [
+            0x07, 0x88, 0x1b, 0xdd, 0x2c, 0xd4, 0x32, 0xd6, 0x0f, 0x9f, 0x78, 0x7d, 0xc1, 0x64,
+            0xae, 0x52, 0xd7, 0x21, 0x64, 0x40, 0x6a, 0x11, 0x4b, 0xaa, 0x20, 0x2c, 0xb8, 0x55,
+            0x9b, 0x4f, 0x79, 0x96, 0x5e, 0x8b, 0xa7, 0xdf,
+        ];
+        Aes256Key::new(key, iv, &blob, 0)
     }
     #[test]
     pub fn test_e2e_sequential_bytes() -> Result<(), Error> {

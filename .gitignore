@@ -9,3 +9,4 @@ tests/testcases.plain
 tests/testcases.yaml
 *.bin
 /*key*.yml
+/*key*.kgz
