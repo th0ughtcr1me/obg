@@ -203,9 +203,28 @@ impl Aes256Key {
     }
     pub fn load_from_file(filename: String, strict: bool, key_offset: Option<usize>, salt_offset: Option<usize>, blob_offset: Option<usize>, moo: bool) -> Result<Aes256Key, Error> {
         let bytes = read_bytes(&filename)?;
-        if bytes.len() < 110 {
+        let mut ml: usize = 110;
+        ml = match key_offset {
+            Some(o) => if o > ml {
+                o
+            } else {ml},
+            None => ml,
+        };
+        ml = match salt_offset {
+            Some(o) => if o > ml {
+                o
+            } else {ml},
+            None => ml,
+        };
+        ml = match blob_offset {
+            Some(o) => if o > ml {
+                o
+            } else {ml},
+            None => ml,
+        };
+        if match moo {true => bytes.len()/2,false => bytes.len()} < ml {
             return Err(Error::FileSystemError(format!(
-                "{} is too small",
+                "{} is too small for the set of constraints",
                 filename
             )));
         }
@@ -215,7 +234,6 @@ impl Aes256Key {
             let mag1cpfx = bytes.drain(0..8).collect::<Vec<u8>>();
             assert!(match_prefix(&mag1cpfx));
         }
-
 
         let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-8-match key_offset {Some(o)=>o, None => 0};
         let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
