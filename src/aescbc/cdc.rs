@@ -28,9 +28,6 @@ pub use crate::ioutils::{absolute_path, open_write, read_bytes, read_bytes_high_
 use hex;
 use rand::prelude::*;
 
-use std::io::Write;
-use std::path::Path;
-use chrono::{DateTime,Utc};
 use aes::cipher::{
     // generic_array::{GenericArray, ArrayLength, typenum::U8};
     generic_array::GenericArray,
@@ -39,6 +36,9 @@ use aes::cipher::{
     KeyInit,
 };
 use aes::Aes256;
+use chrono::{DateTime, Utc};
+use std::io::Write;
+use std::path::Path;
 
 pub trait EncryptionEngine {
     fn encrypt_block(&self, plaintext: &[u8], xor_block: &[u8]) -> Vec<u8>;
@@ -105,9 +105,9 @@ pub struct Aes256Key {
 }
 
 // MaGic PreFix
-const AESMGPF: [u8;8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
+const AESMGPF: [u8; 8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
 
-fn getcurrentversion() -> String{
+fn getcurrentversion() -> String {
     format!("obg-v{}", env!("CARGO_PKG_VERSION"))
 }
 
@@ -142,14 +142,20 @@ impl Aes256Key {
             version: getcurrentversion(),
         }
     }
-    pub fn new_with_meta(key: B256, iv: B128, blob: &[u8], cycles: u32, meta: SourceMeta) -> Aes256Key {
+    pub fn new_with_meta(
+        key: B256,
+        iv: B128,
+        blob: &[u8],
+        cycles: u32,
+        meta: SourceMeta,
+    ) -> Aes256Key {
         Aes256Key {
             key: hex::encode(key),
             iv: hex::encode(iv),
             blob: hex::encode(blob),
             cycles: Some(cycles),
             sourcemeta: Some(meta),
-            version: getcurrentversion()
+            version: getcurrentversion(),
         }
     }
     pub fn derive(
@@ -201,28 +207,51 @@ impl Aes256Key {
         let key: Aes256Key = serde_yaml::from_slice(&bytes)?;
         Ok(key)
     }
-    pub fn load_from_file(filename: String, strict: bool, key_offset: Option<usize>, salt_offset: Option<usize>, blob_offset: Option<usize>, moo: bool) -> Result<Aes256Key, Error> {
+    pub fn load_from_file(
+        filename: String,
+        strict: bool,
+        key_offset: Option<usize>,
+        salt_offset: Option<usize>,
+        blob_offset: Option<usize>,
+        moo: bool,
+    ) -> Result<Aes256Key, Error> {
         let bytes = read_bytes(&filename)?;
         let mut ml: usize = 110;
         ml = match key_offset {
-            Some(o) => if o > ml {
-                o
-            } else {ml},
+            Some(o) => {
+                if o > ml {
+                    o
+                } else {
+                    ml
+                }
+            }
             None => ml,
         };
         ml = match salt_offset {
-            Some(o) => if o > ml {
-                o
-            } else {ml},
+            Some(o) => {
+                if o > ml {
+                    o
+                } else {
+                    ml
+                }
+            }
             None => ml,
         };
         ml = match blob_offset {
-            Some(o) => if o > ml {
-                o
-            } else {ml},
+            Some(o) => {
+                if o > ml {
+                    o
+                } else {
+                    ml
+                }
+            }
             None => ml,
         };
-        if match moo {true => bytes.len()/2,false => bytes.len()} < ml {
+        if match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        } < ml
+        {
             return Err(Error::FileSystemError(format!(
                 "{} is too small for the set of constraints",
                 filename
@@ -235,14 +264,44 @@ impl Aes256Key {
             assert!(match_prefix(&mag1cpfx));
         }
 
-        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-8-match key_offset {Some(o)=>o, None => 0};
-        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let lhs = (match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        }) - 8
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let rhs = match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        };
         let iv = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
-        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-16-match salt_offset {Some(o)=>o, None => 0};
-        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let lhs = (match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        }) - 16
+            - match salt_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let rhs = match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        };
         let key = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
-        let lhs = (match moo {true => bytes.len()/2,false => bytes.len()})-72-match blob_offset {Some(o)=>o, None => 0};
-        let rhs = match moo {true => bytes.len()/2,false => bytes.len()};
+        let lhs = (match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        }) - 72
+            - match blob_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let rhs = match moo {
+            true => bytes.len() / 2,
+            false => bytes.len(),
+        };
         let blob = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
 
         Ok(Aes256Key {
@@ -258,7 +317,7 @@ impl Aes256Key {
         let mut file = open_write(&filename)?;
         file.write_all(&AESMGPF.to_vec())?;
         file.write_all(filename.as_str().as_bytes())?;
-        file.write_all(&[0x00,0x00,0x00,0x00])?;
+        file.write_all(&[0x00, 0x00, 0x00, 0x00])?;
         let mut rng = thread_rng();
         let mut mods: Vec<usize> = (237..1283).collect();
         mods.shuffle(&mut rng);
@@ -267,15 +326,20 @@ impl Aes256Key {
         buf.resize(len, 0xa);
         rng.fill_bytes(&mut buf);
         file.write_all(&buf)?;
-        file.write_all(&[0x00, 0x00, 0x00, 0x10,    // 2.
-                         0x00, 0x00, 0x00, 0x00,    // 0.
-                         0x00, 0x00, 0x00, 0x00])?; // 0
+        file.write_all(&[
+            0x00, 0x00, 0x00, 0x10, // 2.
+            0x00, 0x00, 0x00, 0x00, // 0.
+            0x00, 0x00, 0x00, 0x00,
+        ])?; // 0
         file.write_all(&hex::decode("0105161050110a12")?)?;
         file.write_all(&[0x26, 0x7b, 0xfe, 0x0e])?;
-        file.write_all(&hex::decode(&format!("{:016x}", match self.cycles {
-            Some(c) => c,
-            None => 0,
-        }))?)?;
+        file.write_all(&hex::decode(&format!(
+            "{:016x}",
+            match self.cycles {
+                Some(c) => c,
+                None => 0,
+            }
+        ))?)?;
         file.write_all(&self.skey())?;
         file.write_all(&self.siv())?;
         Ok(())

@@ -3,8 +3,8 @@ use shellexpand;
 
 use std::fs::{File, OpenOptions};
 use std::io::Read;
-use std::path::Path;
 use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 
 pub struct ReadFile {
     pub bytes: Vec<u8>,
@@ -78,7 +78,11 @@ pub fn read_bytes(filename: &str) -> Result<Vec<u8>, Error> {
 pub fn open_write(target: &str) -> Result<std::fs::File, Error> {
     let location = absolute_path(target);
     get_or_create_ancestor_dir(&location)?;
-    Ok(OpenOptions::new().create(true).write(true).mode(0o600).open(target)?)
+    Ok(OpenOptions::new()
+        .create(true)
+        .write(true)
+        .mode(0o600)
+        .open(target)?)
 }
 
 pub fn open_read(target: &str) -> Result<std::fs::File, Error> {

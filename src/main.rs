@@ -1,6 +1,6 @@
 use clap_builder::Parser;
-use hex;
 use console;
+use hex;
 
 use obg::aescbc::Aes256CbcCodec;
 use obg::aescbc::EncryptionEngine;
@@ -10,17 +10,21 @@ use obg::errors::Error;
 use obg::ioutils::absolute_path;
 use obg::ioutils::file_exists;
 use obg::pap::{decrypt_file, encrypt_file};
-use obg::sneaker::io::{xstack, is_snuck};
+use obg::sneaker::io::{is_snuck, xstack};
 use std::fs::File;
 // use url::{Url, Host, Position};
 
 fn main() -> Result<(), Error> {
     std::panic::set_hook(Box::new(|panic_info| {
-    if let Some(y) = panic_info.payload().downcast_ref::<&str>() {
-        eprintln!("{} {}", console::style("Error:").color256(247), console::style(format!("{y}")).color256(253));
-    } else {
-        eprintln!("{}", console::style("unknown error").red());
-    }
+        if let Some(y) = panic_info.payload().downcast_ref::<&str>() {
+            eprintln!(
+                "{} {}",
+                console::style("Error:").color256(247),
+                console::style(format!("{y}")).color256(253)
+            );
+        } else {
+            eprintln!("{}", console::style("unknown error").red());
+        }
     }));
 
     let mate = Cli::parse();
@@ -45,7 +49,10 @@ fn main() -> Result<(), Error> {
             let key_file = absolute_path(&args.output_file);
             let key = args.derive_key(args.shuffle_iv)?;
             if file_exists(&key_file) && !args.force {
-                eprintln!("{} already exists, you may pass `-f' to force overwrite", key_file);
+                eprintln!(
+                    "{} already exists, you may pass `-f' to force overwrite",
+                    key_file
+                );
                 std::process::exit(0xdc);
             }
             key.save_to_file(key_file.clone())?;

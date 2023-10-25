@@ -1,11 +1,8 @@
 pub const STACK_WIDTH: usize = 4;
 pub const MAGIC_WIDTH: usize = 33;
 
-
 pub fn stack() -> Vec<u8> {
-    vec![
-        0x00, 0x00, 0x02, 0x00,
-    ]
+    vec![0x00, 0x00, 0x02, 0x00]
 }
 
 pub fn magic_id() -> Vec<u8> {
@@ -15,8 +12,6 @@ pub fn magic_id() -> Vec<u8> {
         0x7c, 0x21, 0x2b, // 2b or not 2b ~?~
     ]
 }
-
-
 
 #[cfg(test)]
 mod sneaker_tests {

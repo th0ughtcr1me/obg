@@ -1,7 +1,6 @@
 use hex::FromHexError;
 use std::string::FromUtf8Error;
 
-
 #[derive(Debug)]
 pub enum Error {
     IOError(std::io::Error),

@@ -6,9 +6,9 @@ use crate::errors::Error;
 use crate::aescbc::config::Pbkdf2HashingAlgo;
 // use atty::Stream;
 use clap::*;
-use std::io::{self, Read};
-use rand::Rng;
 use indicatif::{ProgressBar, ProgressStyle};
+use rand::Rng;
+use std::io::{self, Read};
 // use std::path::Path;
 
 #[derive(Parser, Debug)]
@@ -122,7 +122,12 @@ impl KeyDeriver for KeygenArgs {
             arr.resize(self.password_hwm as usize, 0);
 
             if !self.quiet {
-                let pb = ProgressBar::new(self.cycles as u64).with_message("Generating Password").with_style(ProgressStyle::with_template("{msg} [{elapsed_precise}] {bar:71.220}")?.progress_chars("★ ✩"));
+                let pb = ProgressBar::new(self.cycles as u64)
+                    .with_message("Generating Password")
+                    .with_style(
+                        ProgressStyle::with_template("{msg} [{elapsed_precise}] {bar:71.220}")?
+                            .progress_chars("★ ✩"),
+                    );
                 for r in 0..self.cycles {
                     pb.inc(r.into());
                     rng.fill(&mut arr[..]);
@@ -135,13 +140,19 @@ impl KeyDeriver for KeygenArgs {
             }
 
             vec![hex::encode(arr)]
-        } else {self.password.clone()};
+        } else {
+            self.password.clone()
+        };
         let salt = if self.random {
             let mut rng = rand::thread_rng();
             let mut arr = Vec::<u8>::new();
             arr.resize(self.salt_hwm as usize, 0);
             if !self.quiet {
-                let pb = ProgressBar::new(self.cycles as u64).with_message("Factoring Salt").with_style(ProgressStyle::with_template("{msg}      [{elapsed_precise}] {bar:71.237}")?);
+                let pb = ProgressBar::new(self.cycles as u64)
+                    .with_message("Factoring Salt")
+                    .with_style(ProgressStyle::with_template(
+                        "{msg}      [{elapsed_precise}] {bar:71.237}",
+                    )?);
                 for r in 0..self.cycles {
                     pb.inc(r.into());
                     rng.fill(&mut arr[..]);
@@ -179,7 +190,11 @@ impl KeyDeriver for KeygenArgs {
             }
         }
         if !self.quiet {
-            let pb = ProgressBar::new(2).with_message("More Computation").with_style(ProgressStyle::with_template("{msg}    [{elapsed_precise}] {bar:71.255}")?);
+            let pb = ProgressBar::new(2)
+                .with_message("More Computation")
+                .with_style(ProgressStyle::with_template(
+                    "{msg}    [{elapsed_precise}] {bar:71.255}",
+                )?);
             pb.inc(1);
         }
         Aes256Key::derive(
@@ -265,7 +280,14 @@ impl KeyLoader for KeyOptions {
             0 => Err(Error::InvalidCliArg(format!(
                 "--key-file is required when --password is not provided"
             ))),
-            _ => Aes256Key::load_from_file(self.key_file.clone(), self.strict, self.key_offset, self.salt_offset, self.blob_offset, self.mo_offset),
+            _ => Aes256Key::load_from_file(
+                self.key_file.clone(),
+                self.strict,
+                self.key_offset,
+                self.salt_offset,
+                self.blob_offset,
+                self.mo_offset,
+            ),
         }
     }
 }
@@ -409,7 +431,10 @@ pub struct IdOps {
 pub enum Command {
     #[command(about = "generates key")]
     Keygen(KeygenArgs),
-    #[command(subcommand, about = "encrypts file or input plaintext using a pre-existing key generated via the keygen command")]
+    #[command(
+        subcommand,
+        about = "encrypts file or input plaintext using a pre-existing key generated via the keygen command"
+    )]
     Encrypt(Encrypt),
     #[command(subcommand, about = "decrypts file or input ciphertext")]
     Decrypt(Decrypt),
