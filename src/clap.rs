@@ -233,16 +233,16 @@ pub struct KeyOptions {
     #[arg(short, long, help = "validate key integrity")]
     pub strict: bool,
 
-    #[arg(short = 'o', long, help = "key offset")]
+    #[arg(short = 'o', long, env = "OBG_KO", help = "key offset")]
     pub key_offset: Option<usize>,
 
-    #[arg(short = 'O', long, help = "salt offset")]
+    #[arg(short = 'O', long, env = "OBG_SO", help = "salt offset")]
     pub salt_offset: Option<usize>,
 
-    #[arg(short = 'b', long, help = "blob offset")]
+    #[arg(short = 'b', long, env = "OBG_BO", help = "blob offset")]
     pub blob_offset: Option<usize>,
 
-    #[arg(short = 'm', long = "mo", help = "middle-out offset")]
+    #[arg(short = 'm', long = "mo", env = "OBG_MO", help = "middle-out offset")]
     pub mo_offset: bool,
 }
 // impl KeyDeriver for KeyOptions {
