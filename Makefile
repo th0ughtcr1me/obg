@@ -49,7 +49,12 @@ clean: cls
 cleanx:
 	@rm -rf $(OBG_DEBUG_EXEC)
 	@rm -rf $(OBG_RELEASE_EXEC)
-
+	@rm -f $(OBG_KEY0)
+	@rm -f $(OBG_KEY1)
+	@rm -f $(OBG_KEY2)
+	@rm -f $(OBG_FILE)
+	@rm -f $(OBG_LOG)
+	@git clean -fXdq tests
 cls:
 	-@reset || tput reset
 
@@ -62,7 +67,7 @@ fmt:
 check:
 	cargo check --all-targets
 
-run build test: check
+run build test: cleanx check
 	cargo $@
 
 $(OBG_KEY0): debug

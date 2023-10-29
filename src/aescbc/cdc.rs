@@ -96,16 +96,16 @@ pub struct SourceMeta {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
-    version: String,
-    cycles: Option<u32>,
-    key: String,
-    iv: String,
-    sourcemeta: Option<SourceMeta>,
+    pub version: String,
+    pub cycles: Option<u32>,
+    pub key: String,
+    pub iv: String,
+    pub sourcemeta: Option<SourceMeta>,
     pub blob: String,
 }
 
 // MaGic PreFix
-const AESMGPF: [u8; 8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
+pub const AESMGPF: [u8; 8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
 
 fn getcurrentversion() -> String {
     format!("obg-v{}", env!("CARGO_PKG_VERSION"))
@@ -168,7 +168,6 @@ impl Aes256Key {
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
     ) -> Result<Aes256Key, Error> {
-
         let mut password = Vec::<u8>::new();
         for sec in passwords {
             password.extend(if Path::new(&sec).exists() {
@@ -201,16 +200,6 @@ impl Aes256Key {
         }
         Ok(Aes256Key::new(key, iv, &blob, cycles))
     }
-    pub fn save_to_yaml_file(&self, filename: String) -> Result<(), Error> {
-        let mut file = open_write(&filename)?;
-        let yaml = serde_yaml::to_string(self)?;
-        Ok(file.write_all(yaml.as_bytes())?)
-    }
-    pub fn load_from_yaml_file(filename: String) -> Result<Aes256Key, Error> {
-        let bytes = read_bytes(&filename)?;
-        let key: Aes256Key = serde_yaml::from_slice(&bytes)?;
-        Ok(key)
-    }
     pub fn load_from_file(
         filename: String,
         strict: bool,
@@ -220,7 +209,7 @@ impl Aes256Key {
         moo: bool,
     ) -> Result<Aes256Key, Error> {
         let bytes = read_bytes(&filename)?;
-        let mut ml: usize = (bytes.len() /3) - 84;
+        let mut ml: usize = (bytes.len() / 3) - 84;
         ml = match key_offset {
             Some(o) => {
                 if o > ml {
@@ -281,6 +270,7 @@ impl Aes256Key {
             false => bytes.len(),
         };
         let iv = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+
         let lhs = (match moo {
             true => bytes.len() / 2,
             false => bytes.len(),
@@ -294,6 +284,7 @@ impl Aes256Key {
             false => bytes.len(),
         };
         let key = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+
         let lhs = (match moo {
             true => bytes.len() / 2,
             false => bytes.len(),
@@ -320,7 +311,10 @@ impl Aes256Key {
     pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
         let mut file = open_write(&filename)?;
         file.write_all(&AESMGPF.to_vec())?;
-        file.write_all(filename.as_str().as_bytes())?;
+        file.write_all(match Path::new(&filename).file_name() {
+            Some(filename) => format!("{}", filename.to_string_lossy()),
+            None => filename.clone(),
+        }.as_str().as_bytes())?;
         file.write_all(&[0x00, 0x00, 0x00, 0x00])?;
         let mut rng = thread_rng();
         let mut mods: Vec<usize> = (237..1283).collect();
@@ -330,15 +324,20 @@ impl Aes256Key {
         buf.resize(len, 0xa);
         rng.fill_bytes(&mut buf);
         file.write_all(&buf)?;
+        file.write_all(&hex::decode(&format!(
+            "{:032x}",
+            len as u64
+        ))?)?;
+
         file.write_all(&[
-            0x00, 0x00, 0x00, 0x10, // 2.
+            0x00, 0x00, 0x00, 0x11, // 3.
             0x00, 0x00, 0x00, 0x00, // 0.
-            0x00, 0x00, 0x00, 0x10, // 2
-        ])?; // 0
+            0x00, 0x00, 0x00, 0x00, // 0
+        ])?;
         file.write_all(&hex::decode("0105161050110a12")?)?;
         file.write_all(&[0x26, 0x7b, 0xfe, 0x0e])?;
         file.write_all(&hex::decode(&format!(
-            "{:016x}",
+            "{:032x}",
             match self.cycles {
                 Some(c) => c,
                 None => 0,
@@ -347,6 +346,17 @@ impl Aes256Key {
         file.write_all(&self.skey())?;
         file.write_all(&self.siv())?;
         Ok(())
+    }
+
+    pub fn save_to_yaml_file(&self, filename: String) -> Result<(), Error> {
+        let mut file = open_write(&filename)?;
+        let yaml = serde_yaml::to_string(self)?;
+        Ok(file.write_all(yaml.as_bytes())?)
+    }
+    pub fn load_from_yaml_file(filename: String) -> Result<Aes256Key, Error> {
+        let bytes = read_bytes(&filename)?;
+        let key: Aes256Key = serde_yaml::from_slice(&bytes)?;
+        Ok(key)
     }
 }
 
@@ -463,7 +473,7 @@ impl EncryptionEngine for Aes256CbcCodec {
 
 #[cfg(test)]
 mod aes256cbc_tests {
-    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256};
+    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256, AESMGPF};
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
     use crate::aescbc::kd::DerivationScheme;
@@ -473,6 +483,8 @@ mod aes256cbc_tests {
     use aes::Aes256;
     use k9::assert_equal;
     use serde::{Deserialize, Serialize};
+    // use crate::errors::Error;
+    // use std::str::FromStr;
 
     #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
     pub struct Block {
@@ -970,5 +982,69 @@ mod aes256cbc_tests {
         assert_equal!(decrypted.len() - plaintext_length, 0);
         assert_equal!(decrypted.len(), plaintext_length);
         assert_equal!(plaintext, decrypted);
+    }
+    #[test]
+    pub fn test_save_to_opaque_file() {
+        // -> Result<(), Error>{
+        let password = "arriviami".to_string();
+        let salt = "capiti".to_string();
+        let key = Aes256Key::derive(
+            [password].to_vec(),
+            u64::MAX,
+            [salt].to_vec(),
+            u64::MAX,
+            0x35,
+            DerivationScheme::Crc(CrcAlgo::GcRc256),
+            false,
+        )
+        .unwrap();
+        let filename = "tests/obg-key8.kgz";
+        key.save_to_file(filename.into()).unwrap();
+
+        let mut kdatum = std::fs::read(filename).unwrap();
+        let mut crsr = kdatum.len() - 16;
+        let siv: Vec<u8> = kdatum.drain(crsr..).collect();
+        assert_equal!(siv.to_vec(), key.siv().to_vec());
+
+        crsr -= 32;
+        let skey: Vec<u8> = kdatum.drain(crsr..).collect();
+        assert_equal!(skey.to_vec(), key.skey().to_vec());
+
+        crsr -= 16;
+        let cycles =
+            u32::from_str_radix(&hex::encode(kdatum.drain(crsr..).collect::<Vec<u8>>()), 16)
+            .unwrap();
+        assert_equal!(Some(cycles), key.cycles);
+
+        crsr -= 4;
+        let mk1: Vec<u8> = kdatum.drain(crsr..).collect();
+        assert_equal!(mk1.to_vec(), vec![0x26, 0x7b, 0xfe, 0x0e]);
+
+        crsr -= 8;
+        let mk2: Vec<u8> = kdatum.drain(crsr..).collect();
+        assert_equal!(
+            mk2.to_vec(),
+            vec![0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12]
+        );
+
+        crsr -= 12;
+        let version: Vec<u8> = kdatum.drain(crsr..).collect();
+        assert_equal!(
+            version.to_vec(),
+            vec![0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        );
+
+        crsr -= 16;
+        let len: usize = u64::from_str_radix(&hex::encode(kdatum.drain(crsr..).collect::<Vec<u8>>()), 16).unwrap() as usize;
+        assert!(
+            len >= 237 && len <= 1283
+        );
+        crsr -= len;
+        assert_equal!(kdatum.drain(crsr..).collect::<Vec<u8>>().to_vec().len(), len);
+        crsr -= 4;
+        assert_equal!(kdatum.drain(crsr..).collect::<Vec<u8>>().to_vec(), vec![0x00,0x00,0x00,0x00]);
+        assert_equal!(kdatum.drain(..8).collect::<Vec<u8>>().to_vec(), AESMGPF);
+        assert_equal!(kdatum.to_vec(), b"obg-key8.kgz".to_vec());
+        // Ok(())
     }
 }

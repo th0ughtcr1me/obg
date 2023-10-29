@@ -1,5 +1,7 @@
 use hex::FromHexError;
 use std::string::FromUtf8Error;
+use std::num::ParseIntError;
+
 
 #[derive(Debug)]
 pub enum Error {
@@ -10,6 +12,7 @@ pub enum Error {
     DecryptionError(DecryptionError),
     HexDecodingError(String),
     DeserializationError(String),
+    NumberParsingError(ParseIntError),
     UriParseError(String),
     SerializationError(String),
     InvalidAes256KeySize(String),
@@ -30,6 +33,7 @@ impl std::fmt::Display for Error {
             Error::FileSystemError(e) => write!(f, "FileSystemError: {}", e),
             Error::InvalidCliArg(e) => write!(f, "InvalidCliArg: {}", e),
             Error::HexDecodingError(e) => write!(f, "cannot parse hex string: {}", e),
+            Error::NumberParsingError(e) => write!(f, "ParseIntError: {}", e),
             Error::UriParseError(e) => write!(f, "failed to parse URI {}", e),
             Error::DeserializationError(e) => write!(f, "deserialization error: {}", e),
             Error::SerializationError(e) => write!(f, "serialization error: {}", e),
@@ -44,6 +48,11 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+impl From<ParseIntError> for Error {
+    fn from(e: ParseIntError) -> Self {
+        Error::NumberParsingError(e)
+    }
+}
 impl From<serde_yaml::Error> for Error {
     fn from(e: serde_yaml::Error) -> Self {
         Error::DeserializationError(e.to_string())

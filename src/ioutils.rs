@@ -73,7 +73,7 @@ pub fn open_write(target: &str) -> Result<std::fs::File, Error> {
     let location = absolute_path(target);
     get_or_create_ancestor_dir(&location)?;
     Ok(OpenOptions::new()
-        .create(true)
+        .create(!Path::new(&location).try_exists()?)
         .write(true)
         .mode(0o600)
         .open(target)?)

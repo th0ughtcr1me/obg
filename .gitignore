@@ -15,3 +15,5 @@
 /*key*.kgz
 /tests/ml.cipher
 /tests/ml.plain
+/tests/*.kgz
+/tests/*.yml
