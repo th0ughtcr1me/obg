@@ -220,7 +220,7 @@ impl Aes256Key {
         moo: bool,
     ) -> Result<Aes256Key, Error> {
         let bytes = read_bytes(&filename)?;
-        let mut ml: usize = 110;
+        let mut ml: usize = (bytes.len() /3) - 84;
         ml = match key_offset {
             Some(o) => {
                 if o > ml {

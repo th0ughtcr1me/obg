@@ -40,8 +40,11 @@ pub trait KeyDeriver {
 
 #[derive(Args, Debug)]
 pub struct KeygenArgs {
-    #[arg(short, long)]
+    #[arg(short = 'o', long)]
     pub output_file: String,
+
+    #[arg(short, long, help = "save yaml key")]
+    pub yaml: bool,
 
     #[arg(short, long)]
     pub force: bool,
@@ -233,6 +236,9 @@ pub struct KeyOptions {
     #[arg(short, long, help = "validate key integrity")]
     pub strict: bool,
 
+    #[arg(short = 'p', long, help = "load opaque key")]
+    pub opaque: bool,
+
     #[arg(short = 'o', long, env = "OBG_KO", help = "key offset")]
     pub key_offset: Option<usize>,
 
@@ -245,93 +251,35 @@ pub struct KeyOptions {
     #[arg(short = 'm', long = "mo", env = "OBG_MO", help = "middle-out offset")]
     pub mo_offset: bool,
 }
-// impl KeyDeriver for KeyOptions {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         if self.key_file.len() > 0 {
-//             if !Path::new(&self.key_file).exists() {
-//                 return Err(Error::InvalidCliArg(format!(
-//                     "key-file {} does not exist",
-//                     self.key_file
-//                 )));
-//             }
-//             return Aes256Key::load_from_file(self.key_file.clone());
-//         }
-//         if self.password.len() == 0 {
-//             return Err(Error::InvalidCliArg(format!(
-//                 "--password is required when --key-file is not provided"
-//             )));
-//         }
-//         if self.salt.len() == 0 {
-//             return Err(Error::InvalidCliArg(format!(
-//                 "--salt is required when --key-file is not provided"
-//             )));
-//         }
-//         Aes256Key::derive(
-//             self.password.clone(),
-//             self.salt.clone(),
-//             self.cycles,
-//             shuffle_iv,
-//         )
-//     }
-// }
 impl KeyLoader for KeyOptions {
     fn load_key(&self) -> Result<Aes256Key, Error> {
         match self.key_file.len() {
             0 => Err(Error::InvalidCliArg(format!(
                 "--key-file is required when --password is not provided"
             ))),
-            _ => Aes256Key::load_from_file(
-                self.key_file.clone(),
-                self.strict,
-                self.key_offset,
-                self.salt_offset,
-                self.blob_offset,
-                self.mo_offset,
-            ),
+            _ => match self.opaque {
+                false => Ok(Aes256Key::load_from_yaml_file(
+                    self.key_file.clone(),
+                ).unwrap_or(Aes256Key::load_from_file(
+                    self.key_file.clone(),
+                    self.strict,
+                    self.key_offset,
+                    self.salt_offset,
+                    self.blob_offset,
+                    self.mo_offset,
+                )?)),
+                true => Aes256Key::load_from_file(
+                    self.key_file.clone(),
+                    self.strict,
+                    self.key_offset,
+                    self.salt_offset,
+                    self.blob_offset,
+                    self.mo_offset,
+                ),
+            }
         }
     }
 }
-// impl KeyDeriver for KeyOptions {
-//     fn derive_key(&self, shuffle_iv: bool) -> Result<Aes256Key, Error> {
-//         if let Some(key_file) = &self.key_file {
-//             if key_file.len() > 0 {
-//                 if !Path::new(&key_file).exists() {
-//                     return Err(Error::InvalidCliArg(format!(
-//                         "key-file {} does not exist",
-//                         key_file
-//                     )));
-//                 }
-//                 return Aes256Key::load_from_file(key_file.clone());
-//             }
-//         }
-//         if self.password == None {
-//             return Err(Error::InvalidCliArg(format!(
-//                 "--password is required when --key-file is not provided"
-//             )));
-//         }
-//         if self.salt == None {
-//             return Err(Error::InvalidCliArg(format!(
-//                 "--salt is required when --key-file is not provided"
-//             )));
-//         }
-//         Aes256Key::derive(
-//             self.password.clone().unwrap(),
-//             self.salt.clone().unwrap(),
-//             self.cycles,
-//             shuffle_iv,
-//         )
-//     }
-// }
-// impl KeyLoader for KeyOptions {
-//     fn load_key(&self) -> Result<Aes256Key, Error> {
-//         match &self.key_file {
-//             Some(key_file) => Aes256Key::load_from_file(key_file.clone()),
-//             None => Err(Error::InvalidCliArg(format!(
-//                 "--key-file is required when --password is not provided"
-//             )))
-//         }
-//     }
-// }
 
 #[derive(Args, Debug)]
 pub struct EncryptTextParams {

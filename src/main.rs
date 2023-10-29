@@ -23,7 +23,7 @@ fn main() -> Result<(), Error> {
                 console::style(format!("{y}")).color256(253)
             );
         } else {
-            eprintln!("{}", console::style("unknown error").red());
+            eprintln!("{}{}", console::style("unknown error:").color256(160), console::style(&format!("{:#?}", panic_info)).color256(237));
         }
     }));
 
@@ -55,7 +55,11 @@ fn main() -> Result<(), Error> {
                 );
                 std::process::exit(0xdc);
             }
-            key.save_to_file(key_file.clone())?;
+            if args.yaml {
+                key.save_to_yaml_file(key_file.clone())?;
+            } else {
+                key.save_to_file(key_file.clone())?;
+            };
             eprintln!("saved {}", key_file);
         }
         Command::Encrypt(instruction) => match instruction {

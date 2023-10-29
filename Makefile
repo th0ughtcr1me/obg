@@ -21,10 +21,10 @@ export OBG_KEY2			:=obg-key2.kgz
 export OBG_FILE			:=obg-file.kgz
 export OBG_LOG			:=obg.log
 export K9_UPDATE_SNAPSHOTS	:=1
-export RUST_BACKTRACE		:=1
-export RUST_LIB_BACKTRACE	:=1
+export RUST_BACKTRACE		:=full
+export RUST_LIB_BACKTRACE	:=full
 
-all: test debug release
+all: test debug release e2e
 
 $(INSTALL_PATH):
 	mkdir -p $@
@@ -72,8 +72,8 @@ $(OBG_KEY0): debug
 
 $(OBG_KEY1): debug
 	rm -f $@
-	$(OBG_RUN) keygen -p tests/key.rst -s tests/iv.dat -o $@
-	$(OBG_RUN) keygen -fp tests/key.rst -s tests/iv.dat -o $@
+	$(OBG_RUN) keygen -p tests/key.rst -s tests/iv.dat -yo $@
+	$(OBG_RUN) keygen -fp tests/key.rst -s tests/iv.dat -yo $@
 
 $(OBG_KEY2): debug
 	rm -f $@
@@ -84,10 +84,13 @@ $(OBG_KEY2): debug
 	# obg keygen --password /dev/random --password-hwm 137 --salt "/dev/random" --salt-hwm 100 --randomize-iv --cycles 42 -o $@
 	rm -f "$$(pwd)/salt.bin" "$$(pwd)/password72.bin"
 
-e2e: cleanx debug
+e2e: cleanx debug test
 	@rm -f $(OBG_KEY0)
 	$(MAKE) $(OBG_KEY0)
 	$(OBG_RUN) encrypt text -k $(OBG_KEY0) "Hello World" > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
+	echo -n "Hello World" | $(OBG_RUN) encrypt text -k $(OBG_KEY0) > cipher.txt
 	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
 	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
 	$(OBG_RUN) encrypt file -k $(OBG_KEY0) tests/testcases.yaml tests/testcases.cipher
@@ -110,6 +113,14 @@ e2e: cleanx debug
 	$(OBG_RUN) id tests/testcases.cipher
 	$(OBG_RUN) decrypt file -b 71 -o 47 -O 67 -k $(OBG_KEY0) tests/testcases.cipher tests/testcases.plain
 	diff tests/testcases.yaml tests/testcases.plain
+	$(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.yml tests/pvn.cipher
+	$(OBG_RUN) id tests/pvn.cipher
+	$(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.cipher tests/pvn.plain
+	diff tests/pvn.yml tests/pvn.plain
+	$(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.txt tests/ml.cipher
+	$(OBG_RUN) id tests/ml.cipher
+	$(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.cipher tests/ml.plain
+	diff tests/ml.txt tests/ml.plain
 
 	@rm -f $(OBG_KEY1)
 	$(MAKE) $(OBG_KEY1)
@@ -132,6 +143,14 @@ e2e: cleanx debug
 	$(OBG_RUN) id tests/ciphertext.jpg
 	$(OBG_RUN) decrypt file --mo -O 67 -o 37 -k $(OBG_KEY1) tests/ciphertext.jpg tests/decrypted.jpg
 	diff  tests/plaintext.jpg tests/decrypted.jpg
+	$(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.yml tests/pvn.cipher
+	$(OBG_RUN) id tests/pvn.cipher
+	$(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.cipher tests/pvn.plain
+	diff tests/pvn.yml tests/pvn.plain
+	$(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.txt tests/ml.cipher
+	$(OBG_RUN) id tests/ml.cipher
+	$(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.cipher tests/ml.plain
+	diff tests/ml.txt tests/ml.plain
 
 	@rm -f $(OBG_KEY2)
 	$(MAKE) $(OBG_KEY2)
@@ -154,5 +173,13 @@ e2e: cleanx debug
 	$(OBG_RUN) id tests/testcases.cipher
 	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/testcases.cipher tests/testcases.plain
 	diff tests/testcases.yaml tests/testcases.plain
+	$(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.yml tests/pvn.cipher
+	$(OBG_RUN) id tests/pvn.cipher
+	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.cipher tests/pvn.plain
+	diff tests/pvn.yml tests/pvn.plain
+	$(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.txt tests/ml.cipher
+	$(OBG_RUN) id tests/ml.cipher
+	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.cipher tests/ml.plain
+	diff tests/ml.txt tests/ml.plain
 
 .PHONY: all clean cls release debug fix fmt check build test examples run-$(OBG_NAME)

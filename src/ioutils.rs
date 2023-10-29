@@ -53,12 +53,6 @@ pub fn get_or_create_ancestor_dir(path: &str) -> Result<String, Error> {
         ))),
     }
 }
-pub fn read_file(filename: &str) -> Result<ReadFile, Error> {
-    let mut file = File::open(filename)?;
-    let mut bytes = Vec::new();
-    let length = file.read_to_end(&mut bytes)?;
-    Ok(ReadFile { bytes, length })
-}
 
 pub fn read_bytes_high_water_mark(filename: &str, hwm: u64) -> Result<Vec<u8>, Error> {
     let file = File::open(filename)?;
