@@ -1,4 +1,4 @@
-use crate::aescbc::config::Pbkdf2HashingAlgo;
+pub use crate::aescbc::config::Pbkdf2HashingAlgo;
 use crate::aescbc::tp::B128;
 use crate::aescbc::tp::B256;
 use crate::errors::Error;

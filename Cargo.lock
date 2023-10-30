@@ -905,6 +905,7 @@ dependencies = [
  "clap_builder",
  "console",
  "crc 3.0.1",
+ "glob",
  "gzip",
  "hex",
  "hmac",
@@ -923,6 +924,7 @@ dependencies = [
  "shellexpand",
  "time",
  "url",
+ "walkdir",
 ]
 
 [[package]]

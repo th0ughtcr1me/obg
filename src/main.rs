@@ -19,7 +19,7 @@ fn main() -> Result<(), Error> {
         if let Some(y) = panic_info.payload().downcast_ref::<&str>() {
             eprintln!(
                 "{} {}",
-                console::style("Error:").color256(247),
+                console::style("Error:").color256(237),
                 console::style(format!("{y}")).color256(253)
             );
         } else {

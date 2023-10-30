@@ -94,8 +94,7 @@ pub struct KeygenArgs {
         long,
         requires_if("false", "interactive"),
         env = "OBG_PBDKF2_CYCLES",
-        default_value_t = 5477
-        // Default_Value = 8455637
+        default_value_t = 54325
     )]
     pub cycles: u32,
 

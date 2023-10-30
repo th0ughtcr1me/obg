@@ -10,10 +10,11 @@ PASSWORD			:="https://soundcloud.com/wave-mandala/home-of-the-future"
 PLAINTEXT			:=plaintext.txt
 CIPHERTEXT			:=ciphertext.txt
 UNCIPHERTEXT			:=unciphertext.txt
-export OBG_KO			:=37
-export OBG_SO			:=24
-export OBG_BO			:=33
-export OBG_MO			:=true
+export OBG_KEY_FILE		:=
+export OBG_KO			:=0
+export OBG_SO			:=0
+export OBG_BO			:=0
+export OBG_MO			:=false
 export OBG_CONFIG		:=obg-config.yaml
 export OBG_KEY0			:=obg-key0.kgz
 export OBG_KEY1			:=obg-key1.kgz
@@ -21,8 +22,8 @@ export OBG_KEY2			:=obg-key2.kgz
 export OBG_FILE			:=obg-file.kgz
 export OBG_LOG			:=obg.log
 export K9_UPDATE_SNAPSHOTS	:=1
-export RUST_BACKTRACE		:=full
-export RUST_LIB_BACKTRACE	:=full
+# export RUST_BACKTRACE		:=full
+# export RUST_LIB_BACKTRACE	:=full
 
 all: test debug release e2e
 
@@ -54,6 +55,7 @@ cleanx:
 	@rm -f $(OBG_KEY2)
 	@rm -f $(OBG_FILE)
 	@rm -f $(OBG_LOG)
+	@rm -f *.kgz *.yml *.yaml tests/*.kgz
 	@git clean -fXdq tests
 cls:
 	-@reset || tput reset
@@ -68,6 +70,7 @@ check:
 	cargo check --all-targets
 
 run build test: cleanx check
+	$(MAKE) cleanx
 	cargo $@
 
 $(OBG_KEY0): debug
@@ -86,18 +89,11 @@ $(OBG_KEY2): debug
 	2>/dev/random dd if=/dev/random of="$$(pwd)/0salt.bin" bs=5 count=8
 	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
 	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@ --force
-	# obg keygen --password /dev/random --password-hwm 137 --salt "/dev/random" --salt-hwm 100 --randomize-iv --cycles 42 -o $@
 	rm -f "$$(pwd)/salt.bin" "$$(pwd)/password72.bin"
 
 e2e: cleanx debug test
 	@rm -f $(OBG_KEY0)
-	$(MAKE) $(OBG_KEY0)
-	$(OBG_RUN) encrypt text -k $(OBG_KEY0) "Hello World" > cipher.txt
-	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
-	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
-	echo -n "Hello World" | $(OBG_RUN) encrypt text -k $(OBG_KEY0) > cipher.txt
-	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
-	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
+	$(MAKE) debug $(OBG_KEY0)
 	$(OBG_RUN) encrypt file -k $(OBG_KEY0) tests/testcases.yaml tests/testcases.cipher
 	$(OBG_RUN) id tests/testcases.cipher
 	$(OBG_RUN) decrypt file -k $(OBG_KEY0) tests/testcases.cipher tests/testcases.plain
@@ -126,9 +122,16 @@ e2e: cleanx debug test
 	$(OBG_RUN) id tests/ml.cipher
 	$(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.cipher tests/ml.plain
 	diff tests/ml.txt tests/ml.plain
+	$(MAKE) $(OBG_KEY0)
+	$(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) "Hello World" > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
+	echo -n "Hello World" | $(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) > cipher.txt
+	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
+	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
 
-	@rm -f $(OBG_KEY1)
-	$(MAKE) $(OBG_KEY1)
+	@rm -f $(OBG_KEY0)
+	$(MAKE) debug $(OBG_KEY0)
 	$(OBG_RUN) encrypt text -k $(OBG_KEY1) "Hello World" > cipher.txt
 	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY1) "$$(cat cipher.txt)")" = "Hello World"
 	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY1))" = "Hello World"

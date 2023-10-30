@@ -15,7 +15,10 @@ use obg::aescbc::cdc::Aes256CbcCodec;
 
 pub use crate::aescbc::kd::pbkdf2_sha384_128bits;
 pub use crate::aescbc::kd::pbkdf2_sha384_256bits;
+pub use crate::aescbc::kd::pbkdf2_sha384;
 pub use crate::aescbc::kd::pbkdf2_sha512;
+pub use crate::aescbc::kd::pbkdf2_sha512_256bits;
+pub use crate::aescbc::kd::pbkdf2_sha256;
 pub use crate::aescbc::kd::DerivationScheme;
 pub use crate::aescbc::pad::Ansix923;
 pub use crate::aescbc::pad::Padder128;
@@ -36,7 +39,6 @@ use aes::cipher::{
     KeyInit,
 };
 use aes::Aes256;
-use chrono::{DateTime, Utc};
 use std::io::Write;
 use std::path::Path;
 
@@ -68,44 +70,24 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub struct FsMetadata {
-    // based on https://github.com/openbsd/src/blob/1835b44f319c9f17642bb957cc6602d2762cc3ae/sys/sys/stat.h#L45-L75
-    mode: u8,
-    birthat: DateTime<Utc>,
-    accessat: DateTime<Utc>,
-    changeat: DateTime<Utc>,
-    modifyat: DateTime<Utc>,
-}
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub struct SourceMeta {
-    filename: Option<String>,
-    stat: Option<FsMetadata>,
-    crc32: Option<String>,
-    md5sum: Option<String>,
-    sha1sum: Option<String>,
-    sha224sum: Option<String>,
-    sha256sum: Option<String>,
-    sha384sum: Option<String>,
-    sha512sum: Option<String>,
-    sha3_224sum: Option<String>,
-    sha3_256sum: Option<String>,
-    sha3_384sum: Option<String>,
-    sha3_512sum: Option<String>,
-    sha3sum: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
     pub version: String,
     pub cycles: Option<u32>,
     pub key: String,
     pub iv: String,
-    pub sourcemeta: Option<SourceMeta>,
     pub blob: String,
+    name: Option<String>,
 }
 
 // MaGic PreFix
 pub const AESMGPF: [u8; 8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
+pub const VRSBUF: [u8; 12] = [
+    0x00, 0x00, 0x00, 0b00000011, // 3.
+    0x00, 0x00, 0x00, 0b00000000, // 0.
+    0x00, 0x00, 0x00, 0b00000000, // 0
+];
+pub const MK1: [u8; 8] = [0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12];
+pub const MK0: [u8; 4] = [0x26, 0x7b, 0xfe, 0x0e];
 
 fn getcurrentversion() -> String {
     format!("obg-v{}", env!("CARGO_PKG_VERSION"))
@@ -119,45 +101,69 @@ pub fn match_prefix(magicpfx: &[u8]) -> bool {
 impl Aes256Key {
     pub fn skey(&self) -> B256 {
         let mut skey: B256 = [0x0; 32];
-        skey.copy_from_slice(&self.key.as_bytes()[..32]);
+        skey.copy_from_slice(&hex::decode(self.key.as_bytes()).expect(&format!("{} key appears to be an invalid hex", match &self.name {
+            Some(name) => format!("{:?} ", name),
+            None => format!("")
+        }))[..32]);
         skey
     }
     pub fn siv(&self) -> B128 {
         let mut siv: B128 = [0x0; 16];
-        siv.copy_from_slice(&self.iv.as_bytes()[..16]);
+        siv.copy_from_slice(&hex::decode(self.iv.as_bytes()).expect(&format!("{} iv appears to be an invalid hex", match &self.name {
+            Some(name) => format!("{:?} ", name),
+            None => format!("")
+        }))[..16]);
         siv
     }
-    pub fn with_sourcemeta(&self, meta: SourceMeta) -> Aes256Key {
-        let mut result = self.clone();
-        result.sourcemeta = Some(meta);
-        result
-    }
-    pub fn new(key: B256, iv: B128, blob: &[u8], cycles: u32) -> Aes256Key {
-        Aes256Key {
-            key: hex::encode(key),
-            iv: hex::encode(iv),
-            blob: hex::encode(blob),
-            cycles: Some(cycles),
-            sourcemeta: None,
-            version: getcurrentversion(),
+    pub fn sblob(&self) -> Vec<u8> {
+        match hex::decode(&self.blob) {
+            Ok(blob) => blob.clone(),
+            Err(e) => format!("{}", e).as_bytes().to_vec()
         }
     }
 
-    pub fn new_with_meta(
-        key: B256,
-        iv: B128,
-        blob: &[u8],
-        cycles: u32,
-        meta: SourceMeta,
-    ) -> Aes256Key {
+    pub fn with_name(&self, name: String) -> Result<Aes256Key, Error> {
+        match &self.name {
+            Some(name) => Err(Error::KeyError(format!("key already named: {}", name))),
+            None => Ok(Aes256Key {
+                name: Some(name),
+                key: self.key.clone(),
+                iv: self.iv.clone(),
+                blob: self.blob.clone(),
+                cycles: self.cycles.clone(),
+                version: self.version.clone(),
+            })
+        }
+    }
+    pub fn new(key: B256, iv: B128, blob: &[u8], cycles: u32) -> Aes256Key {
         Aes256Key {
+            name: None,
             key: hex::encode(key),
             iv: hex::encode(iv),
             blob: hex::encode(blob),
             cycles: Some(cycles),
-            sourcemeta: Some(meta),
             version: getcurrentversion(),
         }
+    }
+    pub fn derive_with_name(
+        name: &str,
+        passwords: Vec<String>,
+        password_hwm: u64,
+        salts: Vec<String>,
+        salt_hwm: u64,
+        cycles: u32,
+        salt_derivation_scheme: DerivationScheme,
+        shuffle_iv: bool,
+    ) -> Result<Aes256Key, Error> {
+        Self::derive(
+            passwords,
+            password_hwm,
+            salts,
+            salt_hwm,
+            cycles,
+            salt_derivation_scheme,
+            shuffle_iv,
+        )?.with_name(name.to_string())
     }
     pub fn derive(
         passwords: Vec<String>,
@@ -186,15 +192,26 @@ impl Aes256Key {
             });
         }
         let mut rng = thread_rng();
-        let mut mods: Vec<usize> = (237..1283).collect();
+        let mut mods: Vec<u32> = (237..1283).collect();
         mods.shuffle(&mut rng);
         let len = mods[0];
 
-        let key = pbkdf2_sha384_256bits(&password, &salt, cycles);
-        let blob = pbkdf2_sha512(&password, &salt, cycles, len);
-        let dv = salt_derivation_scheme.derive(&salt, &password, cycles);
+        let mut key = [0xa; 32];
+        key.copy_from_slice(&salt_derivation_scheme.derive(&salt, &password, cycles));
+        let mut blob = Vec::<u8>::new();
+        blob.resize(len as usize, 0xa);
+        let mut tmp = Vec::<u8>::new();
+        tmp.extend(&gcrc256(&password));
+        tmp.reverse();
+        tmp.extend(&gcrc128(&salt));
+        blob.extend(&gcrc256(&tmp[..37]));
+        while blob.len() < len as usize + 16 {
+            blob.extend(&gcrc256(&tmp[..37]));
+            blob.reverse();
+        }
         let mut iv = [0; 16];
-        iv.copy_from_slice(&dv[..16]);
+        iv.copy_from_slice(&blob.drain(..16).collect::<Vec<u8>>());
+        let blob = blob[..len as usize].to_vec();
         if shuffle_iv {
             iv.shuffle(&mut rng);
         }
@@ -208,7 +225,7 @@ impl Aes256Key {
         blob_offset: Option<usize>,
         moo: bool,
     ) -> Result<Aes256Key, Error> {
-        let bytes = read_bytes(&filename)?;
+        let mut bytes = read_bytes(&filename)?;
         let mut ml: usize = (bytes.len() / 3) - 84;
         ml = match key_offset {
             Some(o) => {
@@ -250,94 +267,138 @@ impl Aes256Key {
                 filename
             )));
         }
-        let mut bytes = bytes.to_vec();
 
-        if strict {
-            let mag1cpfx = bytes.drain(0..8).collect::<Vec<u8>>();
-            assert!(match_prefix(&mag1cpfx));
-        }
-
-        let lhs = (match moo {
+        let mut lhs = (match moo {
             true => bytes.len() / 2,
             false => bytes.len(),
+        }) - 16
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+
+        let siv: Vec<u8> = bytes.drain(lhs..).collect();
+
+        lhs = (match moo {
+            true => bytes.len() / 2,
+            false => lhs,
+        }) - 32
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let skey: Vec<u8> = bytes.drain(lhs..).collect();
+
+        lhs = (match moo {
+            true => bytes.len() / 2,
+            false => lhs,
         }) - 8
             - match key_offset {
                 Some(o) => o,
                 None => 0,
             };
-        let rhs = match moo {
-            true => bytes.len() / 2,
-            false => bytes.len(),
-        };
-        let iv = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+        let cycles =
+            u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16)
+                .unwrap();
 
-        let lhs = (match moo {
+        lhs = (match moo {
             true => bytes.len() / 2,
-            false => bytes.len(),
-        }) - 16
-            - match salt_offset {
+            false => lhs,
+        }) - 4
+            - match key_offset {
                 Some(o) => o,
                 None => 0,
             };
-        let rhs = match moo {
-            true => bytes.len() / 2,
-            false => bytes.len(),
-        };
-        let key = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+        let mk0: Vec<u8> = bytes.drain(lhs..).collect();
+        if strict {assert_eq!(mk0, MK0);}
 
-        let lhs = (match moo {
+        lhs = (match moo {
             true => bytes.len() / 2,
-            false => bytes.len(),
-        }) - 72
-            - match blob_offset {
+            false => lhs,
+        }) - 8
+            - match key_offset {
                 Some(o) => o,
                 None => 0,
             };
-        let rhs = match moo {
+        let mk1: Vec<u8> = bytes.drain(lhs..).collect();
+        if strict {assert_eq!(mk1, MK1);}
+
+        lhs = (match moo {
             true => bytes.len() / 2,
-            false => bytes.len(),
-        };
-        let blob = bytes.drain(lhs..rhs).collect::<Vec<u8>>();
+            false => lhs,
+        }) - 12
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let vrsbuf: Vec<u8> = bytes.drain(lhs..).collect();
+        let version = format!("obg-v{}.{}.{}",
+                              vrsbuf[3],
+                              vrsbuf[7],
+                              vrsbuf[11],
+        );
+        if strict {assert_eq!(vrsbuf, VRSBUF);}
+
+        lhs = (match moo {
+            true => bytes.len() / 2,
+            false => lhs,
+        }) - 8
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let len: usize =
+            u64::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16)
+                .unwrap() as usize;
+        lhs -= len;
+        let blob = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
+
+        lhs = (match moo {
+            true => bytes.len() / 2,
+            false => lhs,
+        }) - 4
+            - match key_offset {
+                Some(o) => o,
+                None => 0,
+            };
+        let ebytes = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
+        if strict {assert_eq!(ebytes, [0x00, 0x00, 0x00, 0x00]);}
+        let aesmgpf =  bytes.drain(..8).collect::<Vec<u8>>().to_vec();
+        if strict {assert_eq!(aesmgpf, AESMGPF.to_vec());}
+        let fname = bytes.to_vec();
 
         Ok(Aes256Key {
-            version: getcurrentversion(),
-            key: hex::encode(key),
+            key: hex::encode(skey),
+            iv: hex::encode(siv),
             blob: hex::encode(blob),
-            iv: hex::encode(iv),
-            cycles: None,
-            sourcemeta: None,
+            version: version,
+            cycles: Some(cycles),
+            name: Some(String::from_utf8(fname)?),
         })
     }
     pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
         let mut file = open_write(&filename)?;
         file.write_all(&AESMGPF.to_vec())?;
-        file.write_all(match Path::new(&filename).file_name() {
-            Some(filename) => format!("{}", filename.to_string_lossy()),
-            None => filename.clone(),
-        }.as_str().as_bytes())?;
+        file.write_all(
+            match Path::new(&filename).file_name() {
+                Some(filename) => format!("{}", filename.to_string_lossy()),
+                None => filename.clone(),
+            }
+            .as_str()
+            .as_bytes(),
+        )?;
         file.write_all(&[0x00, 0x00, 0x00, 0x00])?;
-        let mut rng = thread_rng();
-        let mut mods: Vec<usize> = (237..1283).collect();
-        mods.shuffle(&mut rng);
-        let len = mods[0];
-        let mut buf = Vec::<u8>::new();
-        buf.resize(len, 0xa);
-        rng.fill_bytes(&mut buf);
-        file.write_all(&buf)?;
-        file.write_all(&hex::decode(&format!(
-            "{:032x}",
-            len as u64
-        ))?)?;
+        let blob = hex::decode(&self.blob)?;
+        let len = blob.len();
 
-        file.write_all(&[
-            0x00, 0x00, 0x00, 0x11, // 3.
-            0x00, 0x00, 0x00, 0x00, // 0.
-            0x00, 0x00, 0x00, 0x00, // 0
-        ])?;
-        file.write_all(&hex::decode("0105161050110a12")?)?;
-        file.write_all(&[0x26, 0x7b, 0xfe, 0x0e])?;
+        file.write_all(&blob)?;
+        file.write_all(&hex::decode(&format!("{:016x}", len))?)?;
+
+        file.write_all(&VRSBUF)?;
+        file.write_all(&MK1)?;
+        file.write_all(&MK0)?;
         file.write_all(&hex::decode(&format!(
-            "{:032x}",
+            "{:016x}",
             match self.cycles {
                 Some(c) => c,
                 None => 0,
@@ -347,7 +408,6 @@ impl Aes256Key {
         file.write_all(&self.siv())?;
         Ok(())
     }
-
     pub fn save_to_yaml_file(&self, filename: String) -> Result<(), Error> {
         let mut file = open_write(&filename)?;
         let yaml = serde_yaml::to_string(self)?;
@@ -473,10 +533,12 @@ impl EncryptionEngine for Aes256CbcCodec {
 
 #[cfg(test)]
 mod aes256cbc_tests {
-    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256, AESMGPF};
+    use crate::aescbc::cdc::{xor_128, Aes256CbcCodec, Aes256Key, EncryptionEngine, B128, B256};
+    use crate::aescbc::cdc::{AESMGPF, MK0, MK1};
     use crate::aescbc::kd::pbkdf2_sha384_128bits;
     use crate::aescbc::kd::pbkdf2_sha384_256bits;
     use crate::aescbc::kd::DerivationScheme;
+    use crate::aescbc::kd::Pbkdf2HashingAlgo;
     use crate::hashis::CrcAlgo;
     use crate::ioutils::read_bytes;
     use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
@@ -484,6 +546,8 @@ mod aes256cbc_tests {
     use k9::assert_equal;
     use serde::{Deserialize, Serialize};
     // use crate::errors::Error;
+    use glob::glob;
+
     // use std::str::FromStr;
 
     #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -507,6 +571,24 @@ mod aes256cbc_tests {
         }
     }
 
+    fn cleanup(paths: &[&str]) {
+        for path in paths {
+            if let Ok(paths) = glob(&path) {
+                for path in paths {
+                    match path {
+                        Ok(path) => {
+                            std::fs::remove_file(path.clone()).unwrap_or(());
+                            eprintln!("deleted {}", path.display());
+                        },
+                        Err(e) => {
+                            eprintln!("\x1b[1;38;5;160mdeleted {}\x1b[0m", e);
+
+                        }
+                    }
+                }
+            }
+        }
+    }
     pub fn nist_cbc_aes256_encryption_test_input() -> Aes256CBCTestCase {
         // https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38a.pdf
         // p.28 - # F.2.5 CBC-AES256.Encrypt Vectors
@@ -986,6 +1068,7 @@ mod aes256cbc_tests {
     #[test]
     pub fn test_save_to_opaque_file() {
         // -> Result<(), Error>{
+        cleanup(&["tests/*.kgz"]);
         let password = "arriviami".to_string();
         let salt = "capiti".to_string();
         let key = Aes256Key::derive(
@@ -997,54 +1080,88 @@ mod aes256cbc_tests {
             DerivationScheme::Crc(CrcAlgo::GcRc256),
             false,
         )
-        .unwrap();
-        let filename = "tests/obg-key8.kgz";
-        key.save_to_file(filename.into()).unwrap();
+            .unwrap();
+        let filename = format!("obg-key{}.kgz", rand::random::<u16>());
+        let path = format!("tests/{}", &filename);
+        key.save_to_file(path.clone()).unwrap();
 
-        let mut kdatum = std::fs::read(filename).unwrap();
-        let mut crsr = kdatum.len() - 16;
-        let siv: Vec<u8> = kdatum.drain(crsr..).collect();
+        let mut kdatum = std::fs::read(&path).unwrap();
+
+        let mut lhs = kdatum.len() - 16;
+        let siv: Vec<u8> = kdatum.drain(lhs..).collect();
         assert_equal!(siv.to_vec(), key.siv().to_vec());
 
-        crsr -= 32;
-        let skey: Vec<u8> = kdatum.drain(crsr..).collect();
+        lhs -= 32;
+        let skey: Vec<u8> = kdatum.drain(lhs..).collect();
         assert_equal!(skey.to_vec(), key.skey().to_vec());
 
-        crsr -= 16;
+        lhs -= 8;
         let cycles =
-            u32::from_str_radix(&hex::encode(kdatum.drain(crsr..).collect::<Vec<u8>>()), 16)
-            .unwrap();
+            u32::from_str_radix(&hex::encode(kdatum.drain(lhs..).collect::<Vec<u8>>()), 16)
+                .unwrap();
         assert_equal!(Some(cycles), key.cycles);
 
-        crsr -= 4;
-        let mk1: Vec<u8> = kdatum.drain(crsr..).collect();
-        assert_equal!(mk1.to_vec(), vec![0x26, 0x7b, 0xfe, 0x0e]);
+        lhs -= 4;
+        let mk0: Vec<u8> = kdatum.drain(lhs..).collect();
+        assert_equal!(mk0.to_vec(), MK0.to_vec());
 
-        crsr -= 8;
-        let mk2: Vec<u8> = kdatum.drain(crsr..).collect();
-        assert_equal!(
-            mk2.to_vec(),
-            vec![0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12]
-        );
+        lhs -= 8;
+        let mk1: Vec<u8> = kdatum.drain(lhs..).collect();
+        assert_eq!(mk1.to_vec(), MK1.to_vec(),);
 
-        crsr -= 12;
-        let version: Vec<u8> = kdatum.drain(crsr..).collect();
+        lhs -= 12;
+        let version: Vec<u8> = kdatum.drain(lhs..).collect();
         assert_equal!(
             version.to_vec(),
-            vec![0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            vec![0x00, 0x00, 0x00, 0b00000011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000]
         );
 
-        crsr -= 16;
-        let len: usize = u64::from_str_radix(&hex::encode(kdatum.drain(crsr..).collect::<Vec<u8>>()), 16).unwrap() as usize;
-        assert!(
-            len >= 237 && len <= 1283
+        lhs -= 8;
+        let len: usize =
+            u64::from_str_radix(&hex::encode(kdatum.drain(lhs..).collect::<Vec<u8>>()), 16)
+                .unwrap() as usize;
+        assert!(len >= 237 && len <= 1283);
+        lhs -= len;
+        assert_equal!(
+            kdatum.drain(lhs..).collect::<Vec<u8>>().to_vec().len(),
+            len
         );
-        crsr -= len;
-        assert_equal!(kdatum.drain(crsr..).collect::<Vec<u8>>().to_vec().len(), len);
-        crsr -= 4;
-        assert_equal!(kdatum.drain(crsr..).collect::<Vec<u8>>().to_vec(), vec![0x00,0x00,0x00,0x00]);
+
+        lhs -= 4;
+        assert_equal!(
+            kdatum.drain(lhs..).collect::<Vec<u8>>().to_vec(),
+            vec![0x00, 0x00, 0x00, 0x00]
+        );
         assert_equal!(kdatum.drain(..8).collect::<Vec<u8>>().to_vec(), AESMGPF);
-        assert_equal!(kdatum.to_vec(), b"obg-key8.kgz".to_vec());
+        assert_equal!(kdatum.to_vec(), filename.as_bytes().to_vec());
         // Ok(())
+    }
+    #[test]
+    pub fn test_opaque_save_open() {
+        // -> Result<(), Error>{
+        cleanup(&["tests/*.kgz"]);
+        let filename = format!("obg-key{}.kgz", rand::random::<u16>());
+        let path = format!("tests/{}", &filename);
+
+        let password = "arriviami".to_string();
+        let salt = "capiti".to_string();
+        let key = Aes256Key::derive_with_name(
+            &filename,
+            [password].to_vec(),
+            u64::MAX,
+            [salt].to_vec(),
+            u64::MAX,
+            0x35,
+            DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_512),
+            false,
+        )
+        .unwrap();
+        key.save_to_file(path.clone()).unwrap();
+        let ck = Aes256Key::load_from_file(path, true, None, None, None, false).unwrap();
+        assert_equal!(ck.siv(), key.siv());
+        assert_equal!(ck.skey(), key.skey());
+        assert_equal!(ck.sblob().len(), key.sblob().len());
+        assert_equal!(ck.sblob(), key.sblob());
+        assert_equal!(key, ck);
     }
 }
