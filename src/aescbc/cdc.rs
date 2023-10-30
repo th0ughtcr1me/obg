@@ -86,6 +86,7 @@ pub const VRSBUF: [u8; 12] = [
     0x00, 0x00, 0x00, 0b00000000, // 0.
     0x00, 0x00, 0x00, 0b00000000, // 0
 ];
+pub const BLOBMINL: u32 = 237;
 pub const MK1: [u8; 8] = [0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12];
 pub const MK0: [u8; 4] = [0x26, 0x7b, 0xfe, 0x0e];
 
@@ -154,7 +155,14 @@ impl Aes256Key {
         cycles: u32,
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
+        blob_length: Option<u32>,
     ) -> Result<Aes256Key, Error> {
+        let name = match Path::new(name).file_name() {
+            Some(filename) => format!("{}", filename.to_string_lossy()),
+            None => name.to_string(),
+        };
+
+
         Self::derive(
             passwords,
             password_hwm,
@@ -163,6 +171,7 @@ impl Aes256Key {
             cycles,
             salt_derivation_scheme,
             shuffle_iv,
+            blob_length,
         )?.with_name(name.to_string())
     }
     pub fn derive(
@@ -173,6 +182,7 @@ impl Aes256Key {
         cycles: u32,
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
+        blob_length: Option<u32>,
     ) -> Result<Aes256Key, Error> {
         let mut password = Vec::<u8>::new();
         for sec in passwords {
@@ -192,9 +202,18 @@ impl Aes256Key {
             });
         }
         let mut rng = thread_rng();
-        let mut mods: Vec<u32> = (237..1283).collect();
-        mods.shuffle(&mut rng);
-        let len = mods[0];
+        let len = match blob_length {
+            Some(bl) => if bl < BLOBMINL {
+                return Err(Error::NonValidKey(format!("blob length too small: {} (min {})", bl, BLOBMINL)));
+            } else {
+                bl
+            },
+            None => {
+                let mut mods: Vec<u32> = (BLOBMINL..1283).collect();
+                mods.shuffle(&mut rng);
+                mods[0]
+            }
+        };
 
         let mut key = [0xa; 32];
         key.copy_from_slice(&salt_derivation_scheme.derive(&salt, &password, cycles));
@@ -272,7 +291,7 @@ impl Aes256Key {
             true => bytes.len() / 2,
             false => bytes.len(),
         }) - 16
-            - match key_offset {
+            - match salt_offset {
                 Some(o) => o,
                 None => 0,
             };
@@ -280,7 +299,7 @@ impl Aes256Key {
         let siv: Vec<u8> = bytes.drain(lhs..).collect();
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 32
             - match key_offset {
@@ -290,22 +309,24 @@ impl Aes256Key {
         let skey: Vec<u8> = bytes.drain(lhs..).collect();
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 8
-            - match key_offset {
+            - match blob_offset {
                 Some(o) => o,
                 None => 0,
             };
         let cycles =
-            u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16)
-                .unwrap();
+            match u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16) {
+                Ok(cycles) => Some(cycles),
+                Err(_) => None
+            };
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 4
-            - match key_offset {
+            - match blob_offset {
                 Some(o) => o,
                 None => 0,
             };
@@ -313,10 +334,10 @@ impl Aes256Key {
         if strict {assert_eq!(mk0, MK0);}
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 8
-            - match key_offset {
+            - match blob_offset {
                 Some(o) => o,
                 None => 0,
             };
@@ -324,10 +345,10 @@ impl Aes256Key {
         if strict {assert_eq!(mk1, MK1);}
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 12
-            - match key_offset {
+            - match blob_offset {
                 Some(o) => o,
                 None => 0,
             };
@@ -340,27 +361,43 @@ impl Aes256Key {
         if strict {assert_eq!(vrsbuf, VRSBUF);}
 
         lhs = (match moo {
-            true => bytes.len() / 2,
+            true => lhs / 2,
             false => lhs,
         }) - 8
-            - match key_offset {
+            - match blob_offset {
                 Some(o) => o,
                 None => 0,
             };
         let len: usize =
-            u64::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16)
-                .unwrap() as usize;
-        lhs -= len;
-        let blob = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
-
-        lhs = (match moo {
-            true => bytes.len() / 2,
-            false => lhs,
-        }) - 4
-            - match key_offset {
-                Some(o) => o,
-                None => 0,
+            match u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16) {
+                Ok(len) => len as usize,
+                Err(_) => 0
             };
+
+        let blob = if len > lhs {
+            if strict {
+                return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
+            } else {
+                bytes.clone()
+            }
+        } else {
+            lhs -= len;
+            bytes.drain(lhs..).collect::<Vec<u8>>().to_vec()
+        };
+
+        lhs = if lhs <=4 {
+            if strict {
+                return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
+            } else {
+                lhs
+            }
+        } else {
+            match moo {
+                true => lhs / 2,
+                false => lhs,
+            }
+        } - 4;
+
         let ebytes = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
         if strict {assert_eq!(ebytes, [0x00, 0x00, 0x00, 0x00]);}
         let aesmgpf =  bytes.drain(..8).collect::<Vec<u8>>().to_vec();
@@ -372,8 +409,11 @@ impl Aes256Key {
             iv: hex::encode(siv),
             blob: hex::encode(blob),
             version: version,
-            cycles: Some(cycles),
-            name: Some(String::from_utf8(fname)?),
+            cycles: cycles,
+            name: match String::from_utf8(fname) {
+                Ok(i) => Some(i),
+                Err(_) => None
+            },
         })
     }
     pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
@@ -1044,6 +1084,7 @@ mod aes256cbc_tests {
             0x35,
             DerivationScheme::Crc(CrcAlgo::GcRc256),
             false,
+            None
         )
         .expect("it appears that the key cannot be derived in this instant");
 
@@ -1079,6 +1120,7 @@ mod aes256cbc_tests {
             0x35,
             DerivationScheme::Crc(CrcAlgo::GcRc256),
             false,
+            None
         )
             .unwrap();
         let filename = format!("obg-key{}.kgz", rand::random::<u16>());
@@ -1137,7 +1179,7 @@ mod aes256cbc_tests {
         // Ok(())
     }
     #[test]
-    pub fn test_opaque_save_open() {
+    pub fn test_opaque_save_open_blob_lennone() {
         // -> Result<(), Error>{
         cleanup(&["tests/*.kgz"]);
         let filename = format!("obg-key{}.kgz", rand::random::<u16>());
@@ -1154,6 +1196,7 @@ mod aes256cbc_tests {
             0x35,
             DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_512),
             false,
+            None
         )
         .unwrap();
         key.save_to_file(path.clone()).unwrap();
@@ -1163,5 +1206,64 @@ mod aes256cbc_tests {
         assert_equal!(ck.sblob().len(), key.sblob().len());
         assert_equal!(ck.sblob(), key.sblob());
         assert_equal!(key, ck);
+    }
+    #[test]
+    pub fn test_opaque_save_open_bloblenset() {
+        // -> Result<(), Error>{
+        cleanup(&["tests/*.kgz"]);
+        let filename = format!("obg-key{}.kgz", rand::random::<u16>());
+        let path = format!("tests/{}", &filename);
+
+        let password = "arriviami".to_string();
+        let salt = "capiti".to_string();
+        let key = Aes256Key::derive_with_name(
+            &path,
+            [password].to_vec(),
+            u64::MAX,
+            [salt].to_vec(),
+            u64::MAX,
+            0x35,
+            DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_512),
+            false,
+            Some(325)
+        )
+        .unwrap();
+        key.save_to_file(path.clone()).unwrap();
+        let ck = Aes256Key::load_from_file(path, true, None, None, None, false).unwrap();
+        assert_equal!(ck.siv(), key.siv());
+        assert_equal!(ck.skey(), key.skey());
+        assert_equal!(ck.sblob().len(), key.sblob().len());
+        assert_equal!(ck.sblob(), key.sblob());
+        assert_equal!(key, ck);
+    }
+    #[test]
+    pub fn test_opaque_save_open_bloblenbehindmin() {
+        // -> Result<(), Error>{
+        cleanup(&["tests/*.kgz"]);
+        let filename = format!("obg-key{}.kgz", rand::random::<u16>());
+        let path = format!("tests/{}", &filename);
+
+        let password = "arriviami".to_string();
+        let salt = "capiti".to_string();
+        let result = Aes256Key::derive_with_name(
+            &path,
+            [password].to_vec(),
+            u64::MAX,
+            [salt].to_vec(),
+            u64::MAX,
+            0x35,
+            DerivationScheme::Pbkdf2(Pbkdf2HashingAlgo::Sha3_512),
+            false,
+            Some(33)
+        );
+
+        assert_eq!(match result {
+            Ok(hey) => {
+                format!("notanerror: {:?}", hey)
+            },
+            Err(e) => {
+                format!("{}", e)
+            }
+        }, format!("InvalidVersion: blob length too small: 33 (min 237)"));
     }
 }

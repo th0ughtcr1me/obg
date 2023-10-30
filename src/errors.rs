@@ -1,7 +1,6 @@
 use hex::FromHexError;
-use std::string::FromUtf8Error;
 use std::num::ParseIntError;
-use std::backtrace::Backtrace;
+use std::string::FromUtf8Error;
 
 #[derive(Debug)]
 pub enum Error {
@@ -27,27 +26,25 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let bt = Backtrace::capture();
-
         match self {
-            Error::IOError(e) => write!(f, "IOError: {}{}", bt, e),
-            Error::TemplateError(e) => write!(f, "IOError: {}{}", bt, e),
-            Error::EncryptionError(e) => write!(f, "EncryptionError: {}{}", bt, e),
-            Error::DecryptionError(e) => write!(f, "DecryptionError: {}{}", bt, e),
-            Error::FileSystemError(e) => write!(f, "FileSystemError: {}{}", bt, e),
-            Error::InvalidCliArg(e) => write!(f, "InvalidCliArg: {}{}", bt, e),
-            Error::HexDecodingError(e) => write!(f, "cannot parse hex string: {}{}", bt, e),
-            Error::NumberParsingError(e) => write!(f, "ParseIntError: {}{}", bt, e),
-            Error::UriParseError(e) => write!(f, "failed to parse URI {}{}", bt, e),
-            Error::DeserializationError(e) => write!(f, "deserialization error: {}{}", bt, e),
-            Error::SerializationError(e) => write!(f, "serialization error: {}{}", bt, e),
-            Error::KeyError(s) => write!(f, "KeyError: {}{}", bt, s),
-            Error::NonValidKey(s) => write!(f, "InvalidVersion: {}{}", bt, s),
-            Error::InvalidAes256KeySize(s) => write!(f, "InvalidAes256KeySize: {}{}", bt, s),
-            Error::InvalidAesIvSize(s) => write!(f, "InvalidAesIvSize: {}{}", bt, s),
-            Error::InvalidUtf8(s) => write!(f, "InvalidUtf8: {}{}", bt, s),
-            Error::InvalidConfig(s) => write!(f, "InvalidConfig: {}{}", bt, s),
-            Error::YamlFileError(e) => write!(f, "{}{}", bt, e),
+            Error::IOError(e) => write!(f, "IOError: {}", e),
+            Error::TemplateError(e) => write!(f, "IOError: {}", e),
+            Error::EncryptionError(e) => write!(f, "EncryptionError: {}", e),
+            Error::DecryptionError(e) => write!(f, "DecryptionError: {}", e),
+            Error::FileSystemError(e) => write!(f, "FileSystemError: {}", e),
+            Error::InvalidCliArg(e) => write!(f, "InvalidCliArg: {}", e),
+            Error::HexDecodingError(e) => write!(f, "cannot parse hex string: {}", e),
+            Error::NumberParsingError(e) => write!(f, "ParseIntError: {}", e),
+            Error::UriParseError(e) => write!(f, "failed to parse URI {}", e),
+            Error::DeserializationError(e) => write!(f, "deserialization error: {}", e),
+            Error::SerializationError(e) => write!(f, "serialization error: {}", e),
+            Error::KeyError(s) => write!(f, "KeyError: {}", s),
+            Error::NonValidKey(s) => write!(f, "InvalidVersion: {}", s),
+            Error::InvalidAes256KeySize(s) => write!(f, "InvalidAes256KeySize: {}", s),
+            Error::InvalidAesIvSize(s) => write!(f, "InvalidAesIvSize: {}", s),
+            Error::InvalidUtf8(s) => write!(f, "InvalidUtf8: {}", s),
+            Error::InvalidConfig(s) => write!(f, "InvalidConfig: {}", s),
+            Error::YamlFileError(e) => write!(f, "{}", e),
         }
     }
 }

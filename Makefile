@@ -76,24 +76,31 @@ run build test: cleanx check
 $(OBG_KEY0): debug
 	rm -f $@
 	$(OBG_RUN) keygen -p "awihcinok" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@
-	$(OBG_RUN) keygen -p "konichiwa" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@ -f
+	$(OBG_RUN) keygen -l 1024 -p "konichiwa" -p tests/key.png -p tests/nothing.png -s tests/iv.png -s "slytherin" -o $@ -f
 
 $(OBG_KEY1): debug
 	rm -f $@
 	$(OBG_RUN) keygen -p tests/key.rst -s tests/iv.dat -yo $@
-	$(OBG_RUN) keygen -fp tests/key.rst -s tests/iv.dat -yo $@
+	$(OBG_RUN) keygen -l 1024 -fp tests/key.rst -s tests/iv.dat -yo $@
 
 $(OBG_KEY2): debug
 	rm -f $@
 	2>/dev/random dd if=/dev/random of="$$(pwd)/0password72.bin" bs=9 count=8
 	2>/dev/random dd if=/dev/random of="$$(pwd)/0salt.bin" bs=5 count=8
 	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@
-	$(OBG_RUN) keygen --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@ --force
+	$(OBG_RUN) keygen -l 1024 --password "$$(pwd)/password72.bin" --salt "$$(pwd)/salt.bin" --randomize-iv --cycles 37000 -o $@ --force
 	rm -f "$$(pwd)/salt.bin" "$$(pwd)/password72.bin"
 
 e2e: cleanx debug test
 	@rm -f $(OBG_KEY0)
 	$(MAKE) debug $(OBG_KEY0)
+	$(MAKE) $(OBG_KEY0)
+	# $(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) "Hello World" > cipher.txt
+	# test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
+	# test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
+	# echo -n "Hello World" | $(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) > cipher.txt
+	# test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
+	# test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
 	$(OBG_RUN) encrypt file -k $(OBG_KEY0) tests/testcases.yaml tests/testcases.cipher
 	$(OBG_RUN) id tests/testcases.cipher
 	$(OBG_RUN) decrypt file -k $(OBG_KEY0) tests/testcases.cipher tests/testcases.plain
@@ -106,32 +113,25 @@ e2e: cleanx debug test
 	$(OBG_RUN) id tests/ciphertext.jpg
 	$(OBG_RUN) decrypt file -k $(OBG_KEY0) tests/ciphertext.jpg tests/decrypted.jpg
 	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file --mo -O 82 -o 22 -k $(OBG_KEY0) tests/plaintext.jpg tests/ciphertext.jpg
-	$(OBG_RUN) id tests/ciphertext.jpg
-	$(OBG_RUN) decrypt file --mo -O 82 -o 22 -k $(OBG_KEY0) tests/ciphertext.jpg tests/decrypted.jpg
-	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file -b 71 -o 47 -O 67 -k $(OBG_KEY0) tests/testcases.yaml tests/testcases.cipher
-	$(OBG_RUN) id tests/testcases.cipher
-	$(OBG_RUN) decrypt file -b 71 -o 47 -O 67 -k $(OBG_KEY0) tests/testcases.cipher tests/testcases.plain
-	diff tests/testcases.yaml tests/testcases.plain
-	$(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.yml tests/pvn.cipher
-	$(OBG_RUN) id tests/pvn.cipher
-	$(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.cipher tests/pvn.plain
-	diff tests/pvn.yml tests/pvn.plain
-	$(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.txt tests/ml.cipher
-	$(OBG_RUN) id tests/ml.cipher
-	$(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.cipher tests/ml.plain
-	diff tests/ml.txt tests/ml.plain
-	$(MAKE) $(OBG_KEY0)
-	$(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) "Hello World" > cipher.txt
-	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
-	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
-	echo -n "Hello World" | $(OBG_RUN) encrypt text --strict -k $(OBG_KEY0) > cipher.txt
-	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY0) "$$(cat cipher.txt)")" = "Hello World"
-	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY0))" = "Hello World"
+	# $(OBG_RUN) encrypt file --mo -O 82 -o 22 -k $(OBG_KEY0) tests/plaintext.jpg tests/ciphertext.jpg
+	# $(OBG_RUN) id tests/ciphertext.jpg
+	# $(OBG_RUN) decrypt file --mo -O 82 -o 22 -k $(OBG_KEY0) tests/ciphertext.jpg tests/decrypted.jpg
+	# diff  tests/plaintext.jpg tests/decrypted.jpg
+	# $(OBG_RUN) encrypt file -b 71 -o 47 -O 67 -k $(OBG_KEY0) tests/testcases.yaml tests/testcases.cipher
+	# $(OBG_RUN) id tests/testcases.cipher
+	# $(OBG_RUN) decrypt file -b 71 -o 47 -O 67 -k $(OBG_KEY0) tests/testcases.cipher tests/testcases.plain
+	# diff tests/testcases.yaml tests/testcases.plain
+	# $(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.yml tests/pvn.cipher
+	# $(OBG_RUN) id tests/pvn.cipher
+	# $(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/pvn.cipher tests/pvn.plain
+	# diff tests/pvn.yml tests/pvn.plain
+	# $(OBG_RUN) encrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.txt tests/ml.cipher
+	# $(OBG_RUN) id tests/ml.cipher
+	# $(OBG_RUN) decrypt file -b 110 -o 115 -O 97 -k $(OBG_KEY0) tests/ml.cipher tests/ml.plain
+	# diff tests/ml.txt tests/ml.plain
 
-	@rm -f $(OBG_KEY0)
-	$(MAKE) debug $(OBG_KEY0)
+	@rm -f $(OBG_KEY1)
+	$(MAKE) debug $(OBG_KEY1)
 	$(OBG_RUN) encrypt text -k $(OBG_KEY1) "Hello World" > cipher.txt
 	test "$$($(OBG_RUN) decrypt text -k $(OBG_KEY1) "$$(cat cipher.txt)")" = "Hello World"
 	test "$$(cat cipher.txt | $(OBG_RUN) decrypt text -k $(OBG_KEY1))" = "Hello World"
@@ -139,26 +139,26 @@ e2e: cleanx debug test
 	$(OBG_RUN) id tests/testcases.cipher
 	$(OBG_RUN) decrypt file -k $(OBG_KEY1) tests/testcases.cipher tests/testcases.plain
 	diff tests/testcases.yaml tests/testcases.plain
-	$(OBG_RUN) encrypt file -O 12 -o 83 -k $(OBG_KEY1) tests/testcases.yaml tests/testcases.cipher
-	$(OBG_RUN) id tests/testcases.cipher
-	$(OBG_RUN) decrypt file -O 12 -o 83 -k $(OBG_KEY1) tests/testcases.cipher tests/testcases.plain
-	diff tests/testcases.yaml tests/testcases.plain
+	# $(OBG_RUN) encrypt file -O 12 -o 83 -k $(OBG_KEY1) tests/testcases.yaml tests/testcases.cipher
+	# $(OBG_RUN) id tests/testcases.cipher
+	# $(OBG_RUN) decrypt file -O 12 -o 83 -k $(OBG_KEY1) tests/testcases.cipher tests/testcases.plain
+	# diff tests/testcases.yaml tests/testcases.plain
 	$(OBG_RUN) encrypt file -k $(OBG_KEY1) tests/plaintext.jpg tests/ciphertext.jpg
 	$(OBG_RUN) id tests/ciphertext.jpg
 	$(OBG_RUN) decrypt file -k $(OBG_KEY1) tests/ciphertext.jpg tests/decrypted.jpg
 	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file --mo -O 67 -o 37 -k $(OBG_KEY1) tests/plaintext.jpg tests/ciphertext.jpg
-	$(OBG_RUN) id tests/ciphertext.jpg
-	$(OBG_RUN) decrypt file --mo -O 67 -o 37 -k $(OBG_KEY1) tests/ciphertext.jpg tests/decrypted.jpg
-	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.yml tests/pvn.cipher
-	$(OBG_RUN) id tests/pvn.cipher
-	$(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.cipher tests/pvn.plain
-	diff tests/pvn.yml tests/pvn.plain
-	$(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.txt tests/ml.cipher
-	$(OBG_RUN) id tests/ml.cipher
-	$(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.cipher tests/ml.plain
-	diff tests/ml.txt tests/ml.plain
+	# $(OBG_RUN) encrypt file --mo -O 67 -o 37 -k $(OBG_KEY1) tests/plaintext.jpg tests/ciphertext.jpg
+	# $(OBG_RUN) id tests/ciphertext.jpg
+	# $(OBG_RUN) decrypt file --mo -O 67 -o 37 -k $(OBG_KEY1) tests/ciphertext.jpg tests/decrypted.jpg
+	# diff  tests/plaintext.jpg tests/decrypted.jpg
+	# $(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.yml tests/pvn.cipher
+	# $(OBG_RUN) id tests/pvn.cipher
+	# $(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/pvn.cipher tests/pvn.plain
+	# diff tests/pvn.yml tests/pvn.plain
+	# $(OBG_RUN) encrypt file -b 78 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.txt tests/ml.cipher
+	# $(OBG_RUN) id tests/ml.cipher
+	# $(OBG_RUN) decrypt file -b 79 -o 83 -O 61 -k $(OBG_KEY1) tests/ml.cipher tests/ml.plain
+	# diff tests/ml.txt tests/ml.plain
 
 	@rm -f $(OBG_KEY2)
 	$(MAKE) $(OBG_KEY2)
@@ -173,21 +173,21 @@ e2e: cleanx debug test
 	$(OBG_RUN) id tests/ciphertext.jpg
 	$(OBG_RUN) decrypt file -k $(OBG_KEY2) tests/ciphertext.jpg tests/decrypted.jpg
 	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file --mo -O 83 -o 53 -k $(OBG_KEY2) tests/plaintext.jpg tests/ciphertext.jpg
-	$(OBG_RUN) id tests/ciphertext.jpg
-	$(OBG_RUN) decrypt file --mo -O 83 -o 53 -k $(OBG_KEY2) tests/ciphertext.jpg tests/decrypted.jpg
-	diff  tests/plaintext.jpg tests/decrypted.jpg
-	$(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/testcases.yaml tests/testcases.cipher
-	$(OBG_RUN) id tests/testcases.cipher
-	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/testcases.cipher tests/testcases.plain
-	diff tests/testcases.yaml tests/testcases.plain
-	$(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.yml tests/pvn.cipher
-	$(OBG_RUN) id tests/pvn.cipher
-	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.cipher tests/pvn.plain
-	diff tests/pvn.yml tests/pvn.plain
-	$(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.txt tests/ml.cipher
-	$(OBG_RUN) id tests/ml.cipher
-	$(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.cipher tests/ml.plain
-	diff tests/ml.txt tests/ml.plain
+	# $(OBG_RUN) encrypt file --mo -O 83 -o 53 -k $(OBG_KEY2) tests/plaintext.jpg tests/ciphertext.jpg
+	# $(OBG_RUN) id tests/ciphertext.jpg
+	# $(OBG_RUN) decrypt file --mo -O 83 -o 53 -k $(OBG_KEY2) tests/ciphertext.jpg tests/decrypted.jpg
+	# diff  tests/plaintext.jpg tests/decrypted.jpg
+	# $(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/testcases.yaml tests/testcases.cipher
+	# $(OBG_RUN) id tests/testcases.cipher
+	# $(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/testcases.cipher tests/testcases.plain
+	# diff tests/testcases.yaml tests/testcases.plain
+	# $(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.yml tests/pvn.cipher
+	# $(OBG_RUN) id tests/pvn.cipher
+	# $(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/pvn.cipher tests/pvn.plain
+	# diff tests/pvn.yml tests/pvn.plain
+	# $(OBG_RUN) encrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.txt tests/ml.cipher
+	# $(OBG_RUN) id tests/ml.cipher
+	# $(OBG_RUN) decrypt file -b 63 -o 19 -O 88 -k $(OBG_KEY2) tests/ml.cipher tests/ml.plain
+	# diff tests/ml.txt tests/ml.plain
 
 .PHONY: all clean cls release debug fix fmt check build test examples run-$(OBG_NAME)

@@ -114,6 +114,9 @@ pub struct KeygenArgs {
 
     #[arg(short, long, help = "whether to ask password interactively")]
     pub interactive: bool,
+
+    #[arg(short = 'l', long, env = "OBG_BL", help = "blob length")]
+    pub blob_length: Option<u32>,
 }
 
 impl KeyDeriver for KeygenArgs {
@@ -199,7 +202,8 @@ impl KeyDeriver for KeygenArgs {
                 )?);
             pb.inc(1);
         }
-        Aes256Key::derive(
+        Aes256Key::derive_with_name(
+            &self.output_file,
             password.clone(),
             self.password_hwm,
             salt.clone(),
@@ -207,6 +211,7 @@ impl KeyDeriver for KeygenArgs {
             self.cycles,
             self.salt_derivation_scheme.clone(),
             shuffle_iv,
+            self.blob_length,
         )
     }
 }
@@ -246,6 +251,9 @@ pub struct KeyOptions {
 
     #[arg(short = 'b', long, env = "OBG_BO", help = "blob offset")]
     pub blob_offset: Option<usize>,
+
+    #[arg(short = 'l', long, env = "OBG_BL", help = "blob length")]
+    pub blob_length: Option<u32>,
 
     #[arg(short = 'm', long = "mo", env = "OBG_MO", help = "middle-out offset")]
     pub mo_offset: bool,

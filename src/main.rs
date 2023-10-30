@@ -23,7 +23,7 @@ fn main() -> Result<(), Error> {
                 console::style(format!("{y}")).color256(253)
             );
         } else {
-            eprintln!("{}{}", console::style("unknown error:").color256(160), console::style(&format!("{:#?}", panic_info)).color256(237));
+            eprintln!("{}{}", console::style("unknown error:").color256(160), console::style(&format!("{:#?}", panic_info)).color256(33));
         }
     }));
 
