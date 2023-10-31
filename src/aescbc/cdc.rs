@@ -84,7 +84,7 @@ pub const AESMGPF: [u8; 8] = [0x1f, 0x8b, 0x08, 0x08, 0x61, 0x58, 0x37, 0x65];
 pub const VRSBUF: [u8; 12] = [
     0x00, 0x00, 0x00, 0b00000011, // 3.
     0x00, 0x00, 0x00, 0b00000000, // 0.
-    0x00, 0x00, 0x00, 0b00000000, // 0
+    0x00, 0x00, 0x00, 0b00000001, // 1
 ];
 pub const BLOBMINL: u64 = 237;
 pub const MK1: [u8; 8] = [0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12];
@@ -565,6 +565,8 @@ mod aes256cbc_tests {
     use crate::aescbc::kd::Pbkdf2HashingAlgo;
     use crate::hashis::CrcAlgo;
     use crate::ioutils::read_bytes;
+    use crate::aescbc::VRSBUF;
+
     use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
     use aes::Aes256;
     use k9::assert_equal;
@@ -793,7 +795,14 @@ mod aes256cbc_tests {
             blocks: decryption_blocks.to_vec(),
         };
     }
-
+    #[test]
+    pub fn test_vrsbuf() {
+        assert_equal!(VRSBUF.to_vec(), vec![
+            0x00, 0x00, 0x00, 0b00000011, // 3.
+            0x00, 0x00, 0x00, 0b00000000, // 0.
+            0x00, 0x00, 0x00, 0b00000001, // 1
+        ]);
+    }
     #[test]
     pub fn test_confirm_cbc_aes256_nist_spec_encrypt_single_block() {
         // Given the CBC-AES256 encryption input provided by NIST's Special Publication 800-38A 2001 Edition (p.28)
@@ -1139,7 +1148,7 @@ mod aes256cbc_tests {
         let version: Vec<u8> = kdatum.drain(lhs..).collect();
         assert_equal!(
             version.to_vec(),
-            vec![0x00, 0x00, 0x00, 0b00000011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000000]
+            vec![0x00, 0x00, 0x00, 0b00000011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000001]
         );
 
         lhs -= 8;
