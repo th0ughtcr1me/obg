@@ -96,7 +96,7 @@ pub struct KeygenArgs {
         env = "OBG_PBDKF2_CYCLES",
         default_value_t = 54325
     )]
-    pub cycles: u32,
+    pub cycles: u64,
 
     #[arg(
         short = 'r',
@@ -116,7 +116,7 @@ pub struct KeygenArgs {
     pub interactive: bool,
 
     #[arg(short = 'l', long, env = "OBG_BL", help = "blob length")]
-    pub blob_length: Option<u32>,
+    pub blob_length: Option<u64>,
 }
 
 impl KeyDeriver for KeygenArgs {
@@ -227,7 +227,7 @@ pub struct KeyOptions {
     // #[arg(short, long, required=false)]
     // pub salt: String,
     // #[arg(short, long, default_value_t = 1337)]
-    // pub cycles: u32,
+    // pub cycles: u64,
     #[arg(
         short = 'r',
         long = "rand-iv",
@@ -253,7 +253,7 @@ pub struct KeyOptions {
     pub blob_offset: Option<usize>,
 
     #[arg(short = 'l', long, env = "OBG_BL", help = "blob length")]
-    pub blob_length: Option<u32>,
+    pub blob_length: Option<u64>,
 
     #[arg(short = 'm', long = "mo", env = "OBG_MO", help = "middle-out offset")]
     pub mo_offset: bool,

@@ -72,7 +72,7 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Aes256Key {
     pub version: String,
-    pub cycles: Option<u32>,
+    pub cycles: Option<u64>,
     pub key: String,
     pub iv: String,
     pub blob: String,
@@ -86,7 +86,7 @@ pub const VRSBUF: [u8; 12] = [
     0x00, 0x00, 0x00, 0b00000000, // 0.
     0x00, 0x00, 0x00, 0b00000000, // 0
 ];
-pub const BLOBMINL: u32 = 237;
+pub const BLOBMINL: u64 = 237;
 pub const MK1: [u8; 8] = [0x01, 0x05, 0x16, 0x10, 0x50, 0x11, 0x0a, 0x12];
 pub const MK0: [u8; 4] = [0x26, 0x7b, 0xfe, 0x0e];
 
@@ -136,7 +136,7 @@ impl Aes256Key {
             })
         }
     }
-    pub fn new(key: B256, iv: B128, blob: &[u8], cycles: u32) -> Aes256Key {
+    pub fn new(key: B256, iv: B128, blob: &[u8], cycles: u64) -> Aes256Key {
         Aes256Key {
             name: None,
             key: hex::encode(key),
@@ -152,10 +152,10 @@ impl Aes256Key {
         password_hwm: u64,
         salts: Vec<String>,
         salt_hwm: u64,
-        cycles: u32,
+        cycles: u64,
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
-        blob_length: Option<u32>,
+        blob_length: Option<u64>,
     ) -> Result<Aes256Key, Error> {
         let name = match Path::new(name).file_name() {
             Some(filename) => format!("{}", filename.to_string_lossy()),
@@ -179,10 +179,10 @@ impl Aes256Key {
         password_hwm: u64,
         salts: Vec<String>,
         salt_hwm: u64,
-        cycles: u32,
+        cycles: u64,
         salt_derivation_scheme: DerivationScheme,
         shuffle_iv: bool,
-        blob_length: Option<u32>,
+        blob_length: Option<u64>,
     ) -> Result<Aes256Key, Error> {
         let mut password = Vec::<u8>::new();
         for sec in passwords {
@@ -209,14 +209,14 @@ impl Aes256Key {
                 bl
             },
             None => {
-                let mut mods: Vec<u32> = (BLOBMINL..1283).collect();
+                let mut mods: Vec<u64> = (BLOBMINL..1283).collect();
                 mods.shuffle(&mut rng);
                 mods[0]
             }
         };
 
         let mut key = [0xa; 32];
-        key.copy_from_slice(&salt_derivation_scheme.derive(&salt, &password, cycles));
+        key.copy_from_slice(&salt_derivation_scheme.derive(&salt, &password, cycles as u32));
         let mut blob = Vec::<u8>::new();
         blob.resize(len as usize, 0xa);
         let mut tmp = Vec::<u8>::new();
@@ -245,176 +245,160 @@ impl Aes256Key {
         moo: bool,
     ) -> Result<Aes256Key, Error> {
         let mut bytes = read_bytes(&filename)?;
-        let mut ml: usize = (bytes.len() / 3) - 84;
-        ml = match key_offset {
-            Some(o) => {
-                if o > ml {
-                    o
+        if key_offset== None && salt_offset == None && blob_offset == None && moo == false {
+            let mut lhs = bytes.len() - 16;
+            let siv: Vec<u8> = bytes.drain(lhs..).collect();
+
+            lhs -= 32;
+            let skey: Vec<u8> = bytes.drain(lhs..).collect();
+
+            lhs -= 8;
+            let cycles =
+                Some(match u64::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16) {
+                    Ok(c) => c,
+                    Err(e) => return Err(Error::NonValidKey(format!("invalid cycles: {}", e)))
+                });
+
+            lhs -= 4;
+            let mk0: Vec<u8> = bytes.drain(lhs..).collect();
+            if strict {assert_eq!(mk0, MK0);}
+
+            lhs -= 8;
+
+            let mk1: Vec<u8> = bytes.drain(lhs..).collect();
+            if strict {assert_eq!(mk1, MK1);}
+
+            lhs -= 12;
+
+            let vrsbuf: Vec<u8> = bytes.drain(lhs..).collect();
+            let version = format!(
+                "obg-v{}.{}.{}",
+                vrsbuf[3],
+                vrsbuf[7],
+                vrsbuf[11],
+            );
+            if strict {assert_eq!(vrsbuf, VRSBUF);}
+
+            lhs -=  8;
+            let len: usize =
+                u64::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16)? as usize;
+
+            let blob = if len > lhs {
+                if strict {
+                    return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
                 } else {
-                    ml
+                    bytes.clone()
                 }
-            }
-            None => ml,
-        };
-        ml = match salt_offset {
-            Some(o) => {
-                if o > ml {
-                    o
-                } else {
-                    ml
-                }
-            }
-            None => ml,
-        };
-        ml = match blob_offset {
-            Some(o) => {
-                if o > ml {
-                    o
-                } else {
-                    ml
-                }
-            }
-            None => ml,
-        };
-        if match moo {
-            true => bytes.len() / 2,
-            false => bytes.len(),
-        } < ml
-        {
-            return Err(Error::FileSystemError(format!(
-                "{} is too small for the set of constraints",
-                filename
-            )));
-        }
-
-        let mut lhs = (match moo {
-            true => bytes.len() / 2,
-            false => bytes.len(),
-        }) - 16
-            - match salt_offset {
-                Some(o) => o,
-                None => 0,
-            };
-
-        let siv: Vec<u8> = bytes.drain(lhs..).collect();
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 32
-            - match key_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let skey: Vec<u8> = bytes.drain(lhs..).collect();
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 8
-            - match blob_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let cycles =
-            match u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16) {
-                Ok(cycles) => Some(cycles),
-                Err(_) => None
-            };
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 4
-            - match blob_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let mk0: Vec<u8> = bytes.drain(lhs..).collect();
-        if strict {assert_eq!(mk0, MK0);}
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 8
-            - match blob_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let mk1: Vec<u8> = bytes.drain(lhs..).collect();
-        if strict {assert_eq!(mk1, MK1);}
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 12
-            - match blob_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let vrsbuf: Vec<u8> = bytes.drain(lhs..).collect();
-        let version = format!("obg-v{}.{}.{}",
-                              vrsbuf[3],
-                              vrsbuf[7],
-                              vrsbuf[11],
-        );
-        if strict {assert_eq!(vrsbuf, VRSBUF);}
-
-        lhs = (match moo {
-            true => lhs / 2,
-            false => lhs,
-        }) - 8
-            - match blob_offset {
-                Some(o) => o,
-                None => 0,
-            };
-        let len: usize =
-            match u32::from_str_radix(&hex::encode(bytes.drain(lhs..).collect::<Vec<u8>>()), 16) {
-                Ok(len) => len as usize,
-                Err(_) => 0
-            };
-
-        let blob = if len > lhs {
-            if strict {
-                return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
             } else {
-                bytes.clone()
-            }
-        } else {
-            lhs -= len;
-            bytes.drain(lhs..).collect::<Vec<u8>>().to_vec()
-        };
+                lhs -= len;
+                bytes.drain(lhs..).collect::<Vec<u8>>().to_vec()
+            };
 
-        lhs = if lhs <=4 {
-            if strict {
-                return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
+            lhs = if lhs <=4 {
+                if strict {
+                    return Err(Error::KeyError(format!("invalid blob length in binary key: {}", len)));
+                } else {
+                    lhs
+                }
             } else {
-                lhs
-            }
+                match moo {
+                    true => lhs / 2,
+                    false => lhs,
+                }
+            } - 4;
+
+            let ebytes = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
+            if strict {assert_eq!(ebytes, [0x00, 0x00, 0x00, 0x00]);}
+            let aesmgpf =  bytes.drain(..8).collect::<Vec<u8>>().to_vec();
+            if strict {assert_eq!(aesmgpf, AESMGPF.to_vec());}
+            let fname = bytes.to_vec();
+
+            return Ok(Aes256Key {
+                key: hex::encode(skey),
+                iv: hex::encode(siv),
+                blob: hex::encode(blob),
+                version: version,
+                cycles: cycles,
+                name: match String::from_utf8(fname) {
+                    Ok(i) => Some(i),
+                    Err(_) => None
+                },
+            })
         } else {
-            match moo {
+            let mut ml: usize = (bytes.len() / 3) - 84;
+            ml = match key_offset {
+                Some(o) => {
+                    if o > ml {
+                        o
+                    } else {
+                        ml
+                    }
+                }
+                None => ml,
+            };
+            ml = match salt_offset {
+                Some(o) => {
+                    if o > ml {
+                        o
+                    } else {
+                        ml
+                    }
+                }
+                None => ml,
+            };
+            ml = match blob_offset {
+                Some(o) => {
+                    if o > ml {
+                        o
+                    } else {
+                        ml
+                    }
+                }
+                None => ml,
+            };
+            if match moo {
+                true => bytes.len() / 2,
+                false => bytes.len(),
+            } < ml
+            {
+                return Err(Error::FileSystemError(format!(
+                    "{} is too small for the set of constraints",
+                    filename
+                )));
+            }
+
+            let mut lhs = (match moo {
+                true => bytes.len() / 2,
+                false => bytes.len(),
+            }) - 16
+                - match salt_offset {
+                    Some(o) => o,
+                    None => 0,
+                };
+
+            let siv: Vec<u8> = bytes.drain(lhs..).collect();
+
+            lhs = (match moo {
                 true => lhs / 2,
                 false => lhs,
-            }
-        } - 4;
+            }) - 32
+                - match key_offset {
+                    Some(o) => o,
+                    None => 0,
+                };
+            let skey: Vec<u8> = bytes.drain(lhs..).collect();
 
-        let ebytes = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
-        if strict {assert_eq!(ebytes, [0x00, 0x00, 0x00, 0x00]);}
-        let aesmgpf =  bytes.drain(..8).collect::<Vec<u8>>().to_vec();
-        if strict {assert_eq!(aesmgpf, AESMGPF.to_vec());}
-        let fname = bytes.to_vec();
+            let blob = bytes.drain(lhs..).collect::<Vec<u8>>().to_vec();
 
-        Ok(Aes256Key {
-            key: hex::encode(skey),
-            iv: hex::encode(siv),
-            blob: hex::encode(blob),
-            version: version,
-            cycles: cycles,
-            name: match String::from_utf8(fname) {
-                Ok(i) => Some(i),
-                Err(_) => None
-            },
-        })
+            return Ok(Aes256Key {
+                key: hex::encode(skey),
+                iv: hex::encode(siv),
+                blob: hex::encode(blob),
+                version: format!("confidential"),
+                cycles: Some(74),
+                name: None,
+            });
+        }
     }
     pub fn save_to_file(&self, filename: String) -> Result<(), Error> {
         let mut file = open_write(&filename)?;
@@ -1139,7 +1123,7 @@ mod aes256cbc_tests {
 
         lhs -= 8;
         let cycles =
-            u32::from_str_radix(&hex::encode(kdatum.drain(lhs..).collect::<Vec<u8>>()), 16)
+            u64::from_str_radix(&hex::encode(kdatum.drain(lhs..).collect::<Vec<u8>>()), 16)
                 .unwrap();
         assert_equal!(Some(cycles), key.cycles);
 
